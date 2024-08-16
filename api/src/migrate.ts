@@ -1,3 +1,3 @@
-import { api } from "~/src/feats/api";
+import { api } from "~/src/api";
 
 api.users.migrate();

@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Id schema.
  */
-export const Id = z.number().gt(0);
+export const Id = z.number().or(z.string()).pipe(z.coerce.number().gt(0));
 
 /**
  * Email schema.

@@ -1,14 +1,8 @@
-import type { Serve } from "bun";
+import { Hono } from "hono";
+import { routers } from "~/src/routers";
 
-function fetch(request: Request) {
-  return Response.json({ data: "Hello, Bun!" });
-}
+const app = new Hono();
 
-function error(err: Error) {
-  return Response.json(err, { status: 500 });
-}
+app.route("/users", routers.users);
 
-export default {
-  fetch,
-  error,
-} satisfies Serve;
+export default app;

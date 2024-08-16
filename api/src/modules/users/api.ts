@@ -1,6 +1,5 @@
 import * as Bun from "bun";
 import { z } from "zod";
-
 import type { Bindings, Context } from "~/src/shared/database";
 import {
   database,
@@ -19,7 +18,7 @@ export const User = z.object({
   password: z.string().min(15),
 });
 
-export type User = z.infer<typeof User>;
+export type User = typeof User;
 
 export function migrate() {
   database()
@@ -33,23 +32,23 @@ export function migrate() {
           email TEXT NOT NULL,
           password TEXT NOT NULL
         );
-      `,
+      `
     )
     .run();
 }
 
 export const password = {
-  hash(password: string) {
-    return Bun.password.hash(password);
+  hash(value: string) {
+    return Bun.password.hash(value);
   },
 
-  verify(password: string, hash: string) {
-    return Bun.password.verify(password, hash);
+  verify(value: string, hash: string) {
+    return Bun.password.verify(value, hash);
   },
 };
 
 export async function create(
-  context: Context<Pick<User, "name" | "email" | "password">>,
+  context: Context<Pick<z.input<User>, "name" | "email" | "password">>
 ) {
   const createdAt = new Date().toISOString();
 
@@ -61,14 +60,13 @@ export async function create(
 
   data.password = await password.hash(data.password);
 
-  const user = database()
-    .query<User, Bindings>(
-      `INSERT INTO users ${getInsertValues(data)} RETURNING *;`,
-    )
-    .get(getPrefixedBindings(data));
+  const query = database().query<User, Bindings>(
+    `INSERT INTO users ${getInsertValues(data)} RETURNING *;`
+  );
+  const user = query.get(getPrefixedBindings(data));
 
   if (!user) {
-    throw new Error("Query failed");
+    throw new Error(`Query failed: ${query}`);
   }
 
   return user;
@@ -76,9 +74,9 @@ export async function create(
 
 export async function update(
   context: Context<
-    Partial<Pick<User, "name" | "email" | "password">>,
-    { id: z.infer<typeof Id> }
-  >,
+    Partial<Pick<z.input<User>, "name" | "email" | "password">>,
+    { id: z.input<typeof Id> }
+  >
 ) {
   const updatedAt = new Date().toISOString();
 
@@ -100,7 +98,11 @@ export async function update(
 
   const user = database()
     .query<User, Bindings>(
-      `UPDATE users SET ${getUpdateSet({ name: data.name, email: data.email, password: data.password })} WHERE id = $id RETURNING *;`,
+      `UPDATE users SET ${getUpdateSet({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      })} WHERE id = $id RETURNING *;`
     )
     .get(getPrefixedBindings(data));
 
