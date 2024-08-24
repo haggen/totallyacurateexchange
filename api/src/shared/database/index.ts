@@ -1,7 +1,5 @@
-import type { SQLQueryBindings } from "bun:sqlite";
-import { Database } from "bun:sqlite";
+import { Database, type Statement } from "bun:sqlite";
 import type { z } from "zod";
-import { getConfig } from "~/src/shared/config";
 import type { Id } from "~/src/shared/schema";
 
 export type { SQLQueryBindings as Bindings } from "bun:sqlite";
@@ -13,10 +11,14 @@ export type Session = {
   userId: z.infer<typeof Id>;
 };
 
+/**
+ * Helper type for optional context properties.
+ */
 type Optional<K extends string, T extends Record<string, unknown>> = [
   T,
 ] extends [never]
-  ? {}
+  ? // biome-ignore lint/complexity/noBannedTypes: Not sure what else to use.
+    {}
   : { [key in K]: T };
 
 /**
@@ -28,12 +30,7 @@ export type Context<
 > = { session?: Session } & Optional<"options", O> & Optional<"payload", P>;
 
 /**
- * Database instance.
- */
-let instance: Database;
-
-/**
- * Open database.
+ * Open a new database.
  */
 export function open(url: URL) {
   if (url.protocol !== "sqlite:") {
@@ -42,21 +39,12 @@ export function open(url: URL) {
     );
   }
 
-  instance?.close();
-  instance = new Database(url.pathname.slice(1));
+  const database = new Database(url.pathname.slice(1), { strict: true });
 
-  // Enabling write-ahead logging improves concurrent writes performance.
-  instance.exec("PRAGMA journal_mode = WAL;");
-}
+  // Enabling SQLite's write-ahead improves concurrent writes performance.
+  database.exec("PRAGMA journal_mode = WAL;");
 
-/**
- * Get the database instance, opening a new connection if needed.
- */
-export function database() {
-  if (!instance) {
-    open(getConfig("databaseUrl"));
-  }
-  return instance;
+  return database;
 }
 
 /**
@@ -72,18 +60,17 @@ export function getInsertValues<T extends Record<string, unknown>>(data: T) {
  * Get SQL for update values.
  */
 export function getUpdateSet<T extends Record<string, unknown>>(data: T) {
-  return Object.keys(data)
-    .map((key) => `${key} = $${key}`)
+  return Object.entries(data)
+    .map(([key, value]) => (value !== undefined ? `${key} = $${key}` : ""))
+    .filter(Boolean)
     .join(", ");
 }
 
 /**
- * Bun's SQLite require prefixed bindings, i.e. { $value: ... } instead of { value: ... }.
+ * Query error.
  */
-export function getPrefixedBindings<
-  T extends Record<string, string | bigint | number | boolean | null>,
->(data: T) {
-  return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [`$${key}`, value]),
-  ) as SQLQueryBindings;
+export class QueryError extends Error {
+  constructor(query: Statement) {
+    super(`Query failed: ${query}`);
+  }
 }

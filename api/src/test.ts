@@ -1,9 +1,6 @@
-import { beforeAll } from "bun:test";
-import { setConfig } from "./shared/config";
+import { setConfig } from "~/src/config";
+import { prepare } from "~/src/database";
 
-// Use in memory database.
 setConfig("databaseUrl", new URL("sqlite:///"));
 
-beforeAll(() => {
-  require("~/src/migrate");
-});
+prepare();

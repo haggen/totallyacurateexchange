@@ -52,7 +52,7 @@ test("merge", () => {
   query.merge(limit(10));
   query.merge(offset(10));
   expect(query.toString()).toEqual(
-    "SELECT a, b FROM a, b WHERE a = ? AND b = ? GROUP BY a, b ORDER BY a, b LIMIT 10 OFFSET 10;"
+    "SELECT a, b FROM a, b WHERE a = ? AND b = ? GROUP BY a, b ORDER BY a, b LIMIT 10 OFFSET 10;",
   );
   expect(query.bindings).toEqual([1, 2]);
 });

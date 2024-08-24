@@ -1,8 +1,20 @@
 import { Hono } from "hono";
-import { routers } from "~/src/routers";
+import { logger } from "hono/logger";
+import { getConfig } from "~/src/config";
+import { prepare } from "~/src/database";
+import { app as users } from "~/src/modules/users/app";
+import { handleError } from "~/src/shared/response";
+
+prepare();
 
 const app = new Hono();
 
-app.route("/users", routers.users);
+app.onError(handleError);
+app.use(logger());
 
-export default app;
+app.route("/users", users);
+
+export default {
+  port: getConfig("port"),
+  fetch: app.fetch,
+};

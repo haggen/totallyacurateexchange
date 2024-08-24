@@ -2,14 +2,14 @@ import { Hono } from "hono";
 import { api } from "~/src/api";
 import { Status } from "~/src/shared/response";
 
-export const router = new Hono();
+export const app = new Hono();
 
-router.post("/", async (context) => {
+app.post("/", async (context) => {
   const data = await context.req.json();
 
   const user = await api.users.create({
     payload: {
-      name: "",
+      name: data.name,
       email: data.email,
       password: data.password,
     },
@@ -18,7 +18,7 @@ router.post("/", async (context) => {
   return context.json(user, { status: Status.Created });
 });
 
-router.patch("/:id", async (context) => {
+app.patch("/:id", async (context) => {
   const data = await context.req.json();
   const { id } = context.req.param();
 

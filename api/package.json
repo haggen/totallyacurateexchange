@@ -7,8 +7,8 @@
   "scripts": {
     "start": "bun --hot src/index.ts",
     "test": "bun test",
-    "fix": "biome check --write .",
-    "typecheck": "tsc --noEmit"
+    "fix": "biome check --write",
+    "check": "biome check && tsc --noEmit"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.3",
@@ -16,6 +16,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "hono": "^4.5.8",
     "zod": "^3.23.8"
   }
 }

@@ -1,7 +1,17 @@
-import { expect, setSystemTime, test } from "bun:test";
+import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
 import { ZodError } from "zod";
+import { prepare } from "~/src/database";
+import { create, password, update } from "./api";
 
-import { create, password } from "./api";
+const now = new Date("1990-05-04T10:00:00Z");
+
+beforeAll(() => {
+  prepare();
+});
+
+beforeEach(() => {
+  setSystemTime(now);
+});
 
 test("password", async () => {
   const hash = await password.hash("password");
@@ -12,9 +22,6 @@ test("password", async () => {
 });
 
 test("create", async () => {
-  const createdAt = new Date("1990-05-04T00:00:00Z");
-  setSystemTime(createdAt);
-
   expect(async () => {
     await create({
       payload: {
@@ -31,18 +38,55 @@ test("create", async () => {
     password: "password1234567",
   };
 
-  const user = await create({
+  const result = await create({
     payload,
   });
 
-  expect(user).toEqual({
+  expect(result).toEqual({
     id: expect.any(Number),
-    createdAt: createdAt.toISOString(),
-    updatedAt: createdAt.toISOString(),
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
     name: "John Doe",
     email: "johndoe@example.com",
     password: expect.any(String),
   });
 
-  expect(await password.verify(payload.password, user.password)).toBeTrue();
+  expect(await password.verify(payload.password, result.password)).toBeTrue();
+});
+
+test("update", async () => {
+  const id = 1;
+
+  expect(async () => {
+    await update({
+      payload: {
+        name: "",
+      },
+      options: {
+        id,
+      },
+    });
+  });
+
+  const payload = {
+    name: "Bob  Smith ",
+    email: "Bob@Example.com",
+    password: "thisisnewpassword",
+  };
+
+  const result = await update({
+    payload,
+    options: { id },
+  });
+
+  expect(result).toEqual({
+    id,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    name: "Bob Smith",
+    email: "bob@example.com",
+    password: expect.any(String),
+  });
+
+  expect(await password.verify(payload.password, result.password)).toBeTrue();
 });

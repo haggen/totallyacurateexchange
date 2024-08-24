@@ -1,16 +1,6 @@
-import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 
-import {
-  database,
-  getInsertValues,
-  getPrefixedBindings,
-  getUpdateSet,
-} from ".";
-
-test("database", () => {
-  expect(database()).toBeInstanceOf(Database);
-});
+import { getInsertValues, getUpdateSet } from ".";
 
 test("getInsertValues", () => {
   const values = getInsertValues({
@@ -26,22 +16,8 @@ test("getUpdateValues", () => {
   const values = getUpdateSet({
     a: 1,
     b: 2,
-    c: 3,
+    c: undefined,
   });
 
-  expect(values).toEqual("a = $a, b = $b, c = $c");
-});
-
-test("getPrefixedBindings", () => {
-  const bindings = getPrefixedBindings({
-    a: 1,
-    b: 2,
-    c: 3,
-  });
-
-  expect(bindings).toEqual({
-    $a: 1,
-    $b: 2,
-    $c: 3,
-  });
+  expect(values).toEqual("a = $a, b = $b");
 });
