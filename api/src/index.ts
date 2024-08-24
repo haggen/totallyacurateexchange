@@ -22,7 +22,7 @@ app.use(async (ctx, next) => {
     ctx.req.method,
     new URL(ctx.req.url).pathname,
     ctx.res.status,
-    `${duration.toFixed(2)}ms`
+    `${duration.toFixed(2)}ms`,
   );
 });
 
