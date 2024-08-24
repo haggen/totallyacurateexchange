@@ -1,6 +1,15 @@
 import { expect, test } from "bun:test";
 
-import { from, groupBy, limit, offset, orderBy, select, where } from "./query";
+import {
+  from,
+  groupBy,
+  join,
+  limit,
+  offset,
+  orderBy,
+  select,
+  where,
+} from "./query";
 
 test("select", () => {
   const query = select("a", "b", "c");
@@ -10,6 +19,11 @@ test("select", () => {
 test("from", () => {
   const query = from("table");
   expect(query.toString()).toEqual("FROM table;");
+});
+
+test("join", () => {
+  const query = join("table ON table.a = table.b");
+  expect(query.toString()).toEqual("JOIN table ON table.a = table.b;");
 });
 
 test("where", () => {
@@ -43,6 +57,8 @@ test("merge", () => {
   query.merge(select("b"));
   query.merge(from("a"));
   query.merge(from("b"));
+  query.merge(join("a ON a = a"));
+  query.merge(join("b ON b = b"));
   query.merge(where("a = ?", 1));
   query.merge(where("b = ?", 2));
   query.merge(groupBy("a"));
@@ -52,7 +68,7 @@ test("merge", () => {
   query.merge(limit(10));
   query.merge(offset(10));
   expect(query.toString()).toEqual(
-    "SELECT a, b FROM a, b WHERE a = ? AND b = ? GROUP BY a, b ORDER BY a, b LIMIT 10 OFFSET 10;",
+    "SELECT a, b FROM a, b JOIN a ON a = a JOIN b ON b = b WHERE a = ? AND b = ? GROUP BY a, b ORDER BY a, b LIMIT 10 OFFSET 10;",
   );
   expect(query.bindings).toEqual([1, 2]);
 });

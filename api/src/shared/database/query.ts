@@ -44,6 +44,32 @@ class Sources {
   }
 }
 
+class Joins {
+  content: string[] = [];
+
+  toString() {
+    if (this.content.length < 1) {
+      return "";
+    }
+    return this.content
+      .map((value) => {
+        if (/^((INNER|((LEFT|RIGHT|FULL)( OUTER)?)) )?JOIN\b/i.exec(value)) {
+          return value;
+        }
+        return `JOIN ${value}`;
+      })
+      .join(" ");
+  }
+
+  merge(sources: Sources) {
+    this.content.push(...sources.content);
+  }
+
+  reset(...content: string[]) {
+    this.content = [...content];
+  }
+}
+
 class Criteria {
   clauses: [string, ...unknown[]][] = [];
 
@@ -67,7 +93,7 @@ class Criteria {
   }
 }
 
-class GroupTerms {
+class Groups {
   terms: string[] = [];
 
   constructor(...terms: string[]) {
@@ -81,8 +107,8 @@ class GroupTerms {
     return `GROUP BY ${this.terms.join(", ")}`;
   }
 
-  merge(groupTerms: GroupTerms) {
-    this.terms.push(...groupTerms.terms);
+  merge(groups: Groups) {
+    this.terms.push(...groups.terms);
   }
 
   reset(...terms: string[]) {
@@ -90,7 +116,7 @@ class GroupTerms {
   }
 }
 
-class OrderTerms {
+class Order {
   terms: string[] = [];
 
   constructor(...terms: string[]) {
@@ -104,8 +130,8 @@ class OrderTerms {
     return `ORDER BY ${this.terms.join(", ")}`;
   }
 
-  merge(orderTerms: OrderTerms) {
-    this.terms.push(...orderTerms.terms);
+  merge(order: Order) {
+    this.terms.push(...order.terms);
   }
 
   reset(...terms: string[]) {
@@ -163,11 +189,12 @@ class SelectQuery {
   parts = {
     columns: new Columns(),
     sources: new Sources(),
+    joins: new Joins(),
     criteria: new Criteria(),
     limit: new Limit(),
     offset: new Offset(),
-    groupTerms: new GroupTerms(),
-    orderTerms: new OrderTerms(),
+    groups: new Groups(),
+    order: new Order(),
   } as const;
 
   get bindings() {
@@ -177,9 +204,10 @@ class SelectQuery {
   merge(query: SelectQuery) {
     this.parts.columns.merge(query.parts.columns);
     this.parts.sources.merge(query.parts.sources);
+    this.parts.joins.merge(query.parts.joins);
     this.parts.criteria.merge(query.parts.criteria);
-    this.parts.groupTerms.merge(query.parts.groupTerms);
-    this.parts.orderTerms.merge(query.parts.orderTerms);
+    this.parts.groups.merge(query.parts.groups);
+    this.parts.order.merge(query.parts.order);
     this.parts.limit.merge(query.parts.limit);
     this.parts.offset.merge(query.parts.offset);
   }
@@ -188,8 +216,12 @@ class SelectQuery {
     this.parts.columns.reset(...columns);
   }
 
-  from(...values: string[]) {
-    this.parts.sources.reset(...values);
+  from(...content: string[]) {
+    this.parts.sources.reset(...content);
+  }
+
+  join(...content: string[]) {
+    this.parts.joins.reset(...content);
   }
 
   where(clause: string, ...bindings: unknown[]) {
@@ -197,11 +229,11 @@ class SelectQuery {
   }
 
   groupBy(...terms: string[]) {
-    this.parts.groupTerms.reset(...terms);
+    this.parts.groups.reset(...terms);
   }
 
   orderBy(...terms: string[]) {
-    this.parts.orderTerms.reset(...terms);
+    this.parts.order.reset(...terms);
   }
 
   limit(value: number) {
@@ -213,25 +245,10 @@ class SelectQuery {
   }
 
   toString() {
-    const {
-      columns,
-      sources,
-      criteria,
-      groupTerms,
-      orderTerms,
-      limit,
-      offset,
-    } = this.parts;
+    const { columns, sources, joins, criteria, groups, order, limit, offset } =
+      this.parts;
 
-    return `${[
-      columns,
-      sources,
-      criteria,
-      groupTerms,
-      orderTerms,
-      limit,
-      offset,
-    ]
+    return `${[columns, sources, joins, criteria, groups, order, limit, offset]
       .map(String)
       .filter(Boolean)
       .join(" ")};`;
@@ -253,6 +270,12 @@ export function from(...sources: string[]) {
 export function where(clause: string, ...bindings: unknown[]) {
   const query = new SelectQuery();
   query.where(clause, ...bindings);
+  return query;
+}
+
+export function join(...content: string[]) {
+  const query = new SelectQuery();
+  query.join(...content);
   return query;
 }
 
