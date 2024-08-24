@@ -28,7 +28,7 @@ export function migrate() {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         name TEXT NOT NULL,
-        email TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
       );
     `,

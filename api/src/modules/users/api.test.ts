@@ -1,3 +1,4 @@
+import { SQLiteError } from "bun:sqlite";
 import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
 import { ZodError } from "zod";
 import { prepare } from "~/src/database";
@@ -52,6 +53,12 @@ test("create", async () => {
   });
 
   expect(await password.verify(payload.password, result.password)).toBeTrue();
+
+  expect(async () => {
+    await create({
+      payload,
+    });
+  }).toThrow(SQLiteError);
 });
 
 test("update", async () => {
