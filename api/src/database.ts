@@ -19,7 +19,16 @@ export function database() {
  * Run all migrations.
  */
 export function migrate() {
-  api.users.migrate();
+  for (const module of Object.values(api)) {
+    if (
+      typeof module === "object" &&
+      module !== null &&
+      "migrate" in module &&
+      typeof module.migrate === "function"
+    ) {
+      module.migrate();
+    }
+  }
 }
 
 /**
