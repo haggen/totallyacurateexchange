@@ -4,8 +4,8 @@ import { Status } from "~/src/shared/response";
 
 export const app = new Hono();
 
-app.post("/", async (context) => {
-  const data = await context.req.json();
+app.post("/", async (ctx) => {
+  const data = await ctx.req.json();
 
   const user = await api.users.create({
     payload: {
@@ -15,12 +15,12 @@ app.post("/", async (context) => {
     },
   });
 
-  return context.json(user, { status: Status.Created });
+  return ctx.json(user, Status.Created);
 });
 
-app.patch("/:id", async (context) => {
-  const data = await context.req.json();
-  const { id } = context.req.param();
+app.patch("/:id", async (ctx) => {
+  const data = await ctx.req.json();
+  const { id } = ctx.req.param();
 
   const user = await api.users.update({
     payload: {
@@ -31,5 +31,5 @@ app.patch("/:id", async (context) => {
     options: { id },
   });
 
-  return context.json(user);
+  return ctx.json(user);
 });
