@@ -1,3 +1,4 @@
+import { SQLiteError } from "bun:sqlite";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
@@ -22,6 +23,10 @@ export function handleError(err: Error, ctx: Context) {
 
   if (err instanceof ZodError) {
     return ctx.json({ error: err }, Status.BadRequest);
+  }
+
+  if (err instanceof SQLiteError && err.code?.startsWith("SQLITE_CONSTRAINT")) {
+    return ctx.json({ error: err }, Status.Conflict);
   }
 
   return ctx.json(null, Status.InternalServerError);
