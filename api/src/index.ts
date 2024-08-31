@@ -11,11 +11,11 @@ const app = new Hono();
 app.onError(handleError);
 
 app.use(async (ctx, next) => {
-  const start = performance.now();
+  performance.mark("request");
 
   await next();
 
-  const duration = performance.now() - start;
+  const { duration } = performance.measure("request", "request");
 
   console.log(
     new Date().toISOString(),

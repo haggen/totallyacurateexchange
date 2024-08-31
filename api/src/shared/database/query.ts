@@ -1,3 +1,5 @@
+import type { Bindings } from "~/src/shared/database";
+
 class Columns {
   content: string[] = [];
 
@@ -71,7 +73,7 @@ class Joins {
 }
 
 class Criteria {
-  clauses: [string, ...unknown[]][] = [];
+  clauses: [string, ...Bindings[]][] = [];
 
   toString() {
     if (this.clauses.length < 1) {
@@ -88,7 +90,7 @@ class Criteria {
     this.clauses.push(...criteria.clauses);
   }
 
-  reset(clause: string, ...bindings: unknown[]) {
+  reset(clause: string, ...bindings: Bindings[]) {
     this.clauses = [[clause, ...bindings]];
   }
 }
@@ -214,34 +216,42 @@ class SelectQuery {
 
   select(...columns: string[]) {
     this.parts.columns.reset(...columns);
+    return this;
   }
 
   from(...content: string[]) {
     this.parts.sources.reset(...content);
+    return this;
   }
 
   join(...content: string[]) {
     this.parts.joins.reset(...content);
+    return this;
   }
 
-  where(clause: string, ...bindings: unknown[]) {
+  where(clause: string, ...bindings: Bindings[]) {
     this.parts.criteria.reset(clause, ...bindings);
+    return this;
   }
 
   groupBy(...terms: string[]) {
     this.parts.groups.reset(...terms);
+    return this;
   }
 
   orderBy(...terms: string[]) {
     this.parts.order.reset(...terms);
+    return this;
   }
 
   limit(value: number) {
     this.parts.limit.reset(value);
+    return this;
   }
 
   offset(value: number) {
     this.parts.offset.reset(value);
+    return this;
   }
 
   toString() {
@@ -267,7 +277,7 @@ export function from(...sources: string[]) {
   return query;
 }
 
-export function where(clause: string, ...bindings: unknown[]) {
+export function where(clause: string, ...bindings: Bindings[]) {
   const query = new SelectQuery();
   query.where(clause, ...bindings);
   return query;

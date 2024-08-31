@@ -7,6 +7,7 @@ import {
   getInsertValues,
   getUpdateSet,
 } from "~/src/shared/database";
+import { select } from "~/src/shared/database/query";
 import { AutoDateTime, Email, Id, Name } from "~/src/shared/schema";
 
 export const User = z.object({
@@ -97,6 +98,20 @@ export async function update(
   );
 
   const result = q.get(data);
+
+  if (!result) {
+    throw new QueryError(q);
+  }
+
+  return result;
+}
+
+export function find(context: Context<never, { id: z.input<typeof Id> }>) {
+  const sql = select("*").from("users").where("id = $id", context.options.id);
+
+  const q = database().query<z.output<User>, Bindings[]>(sql.toString());
+
+  const result = q.get(...sql.bindings);
 
   if (!result) {
     throw new QueryError(q);
