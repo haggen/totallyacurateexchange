@@ -2,7 +2,7 @@ import { SQLiteError } from "bun:sqlite";
 import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
 import { ZodError } from "zod";
 import { prepare } from "~/src/database";
-import { create, password, update } from "./api";
+import { create, find, password, update } from "./api";
 
 const now = new Date("1990-05-04T10:00:00Z");
 
@@ -59,6 +59,38 @@ test("create", async () => {
       payload,
     });
   }).toThrow(SQLiteError);
+});
+
+test("find", async () => {
+  const john = await find({
+    options: {
+      limit: 1,
+    },
+  });
+
+  expect(john).toEqual({
+    id: expect.any(Number),
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    name: expect.any(String),
+    email: expect.any(String),
+    password: expect.any(String),
+  });
+
+  const subject = [
+    await find({
+      options: {
+        id: john.id,
+      },
+    }),
+    await find({
+      options: {
+        email: john.email,
+      },
+    }),
+  ];
+
+  expect(subject).toEqual([john, john]);
 });
 
 test("update", async () => {

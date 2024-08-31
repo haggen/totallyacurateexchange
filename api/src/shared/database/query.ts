@@ -79,6 +79,7 @@ class Criteria {
     if (this.clauses.length < 1) {
       return "";
     }
+
     return `WHERE ${this.clauses.map((clause) => clause[0]).join(" AND ")}`;
   }
 

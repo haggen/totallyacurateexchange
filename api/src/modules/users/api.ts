@@ -7,7 +7,7 @@ import {
   getInsertValues,
   getUpdateSet,
 } from "~/src/shared/database";
-import { select } from "~/src/shared/database/query";
+import { select, where } from "~/src/shared/database/query";
 import { AutoDateTime, Email, Id, Name } from "~/src/shared/schema";
 
 export const User = z.object({
@@ -106,8 +106,31 @@ export async function update(
   return result;
 }
 
-export function find(context: Context<never, { id: z.input<typeof Id> }>) {
-  const sql = select("*").from("users").where("id = $id", context.options.id);
+export async function find(
+  context: Context<
+    never,
+    | { id?: z.input<typeof Id> }
+    | { email?: string }
+    | { limit?: number; offset?: number }
+  >,
+) {
+  const sql = select("*").from("users");
+
+  if ("id" in context.options && context.options.id) {
+    sql.merge(where("id = $id", { id: context.options.id }).limit(1));
+  } else if ("email" in context.options && context.options.email) {
+    sql.merge(
+      where("email = $email", { email: context.options.email }).limit(1),
+    );
+  } else {
+    if ("limit" in context.options && context.options.limit) {
+      sql.limit(context.options.limit);
+    }
+
+    if ("offset" in context.options && context.options.offset) {
+      sql.offset(context.options.offset);
+    }
+  }
 
   const q = database().query<z.output<User>, Bindings[]>(sql.toString());
 
