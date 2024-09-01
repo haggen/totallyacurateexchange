@@ -95,13 +95,7 @@ export async function update(
     })} WHERE id = $id RETURNING *;`,
   );
 
-  const result = q.get(data);
-
-  if (!result) {
-    throw new QueryError(q);
-  }
-
-  return result;
+  return q.get(data);
 }
 
 export async function find(

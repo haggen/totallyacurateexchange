@@ -44,6 +44,8 @@ test("GET /:id", async () => {
   expect(await resp.json()).toEqual({
     data: john,
   });
+
+  expect(await app.request("/999")).toHaveProperty("status", 404);
 });
 
 test("PATCH /:id", async () => {
@@ -71,4 +73,16 @@ test("PATCH /:id", async () => {
       password: expect.any(String),
     },
   });
+
+  expect(
+    await app.request("/999", {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: fixtures.bob.name,
+        email: fixtures.bob.email,
+        password: fixtures.bob.password,
+      }),
+      headers: new Headers({ "content-type": "application/json" }),
+    }),
+  ).toHaveProperty("status", 404);
 });

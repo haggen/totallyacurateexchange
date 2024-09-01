@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { api } from "~/src/api";
 import { Status } from "~/src/shared/response";
 
@@ -25,6 +26,10 @@ app.get("/:id{\\d+}", async (ctx) => {
     options: { id },
   });
 
+  if (!user) {
+    throw new HTTPException(Status.NotFound);
+  }
+
   return ctx.json({ data: user });
 });
 
@@ -40,6 +45,10 @@ app.patch("/:id{\\d+}", async (ctx) => {
     },
     options: { id },
   });
+
+  if (!user) {
+    throw new HTTPException(Status.NotFound);
+  }
 
   return ctx.json({ data: user });
 });

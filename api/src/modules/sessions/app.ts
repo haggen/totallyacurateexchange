@@ -39,9 +39,27 @@ app.post("/", async (ctx) => {
 app.get("/:id{\\d+}", async (ctx) => {
   const { id } = ctx.req.param();
 
-  const session = await api.sessions.find({
+  const [session] = await api.sessions.find({
     options: { id },
   });
 
+  if (!session) {
+    throw new HTTPException(Status.NotFound);
+  }
+
   return ctx.json({ data: session });
+});
+
+app.delete("/:id{\\d+}", async (ctx) => {
+  const { id } = ctx.req.param();
+
+  const session = await api.sessions.destroy({
+    options: { id },
+  });
+
+  if (!session) {
+    throw new HTTPException(Status.NotFound);
+  }
+
+  return ctx.json({ data: session }, Status.NoContent);
 });

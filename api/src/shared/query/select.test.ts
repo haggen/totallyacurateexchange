@@ -27,8 +27,8 @@ test("join", () => {
 });
 
 test("where", () => {
-  const query = where("a = $1 AND b = $2", 1, 2);
-  expect(query.toString()).toEqual("WHERE a = $1 AND b = $2;");
+  const query = where("a = ? AND b = ?", 1, 2);
+  expect(query.toString()).toEqual("WHERE a = ? AND b = ?;");
   expect(query.bindings).toEqual([1, 2]);
 });
 
@@ -59,8 +59,8 @@ test("merge", () => {
   query.merge(from("b"));
   query.merge(join("a ON a = a"));
   query.merge(join("b ON b = b"));
-  query.merge(where("a = $1", 1));
-  query.merge(where("b = $2", 2));
+  query.merge(where("a = ?", 1));
+  query.merge(where("b = ?", 2));
   query.merge(groupBy("a"));
   query.merge(groupBy("b"));
   query.merge(orderBy("a"));
@@ -68,7 +68,7 @@ test("merge", () => {
   query.merge(limit(10));
   query.merge(offset(10));
   expect(query.toString()).toEqual(
-    "SELECT a, b FROM a, b JOIN a ON a = a JOIN b ON b = b WHERE a = $1 AND b = $2 GROUP BY a, b ORDER BY a, b LIMIT 10 OFFSET 10;",
+    "SELECT a, b FROM a, b JOIN a ON a = a JOIN b ON b = b WHERE a = ? AND b = ? GROUP BY a, b ORDER BY a, b LIMIT 10 OFFSET 10;",
   );
   expect(query.bindings).toEqual([1, 2]);
 });
