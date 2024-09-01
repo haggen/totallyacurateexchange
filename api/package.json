@@ -3,9 +3,8 @@
   "license": "Apache-2.0",
   "version": "0.0.0",
   "type": "module",
-  "module": "src/index.ts",
   "scripts": {
-    "start": "bun --hot src/index.ts",
+    "start": "bun --hot src/server.ts",
     "fix": "biome check --write",
     "check": "biome check && tsc --noEmit"
   },
