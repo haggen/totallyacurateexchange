@@ -1,4 +1,4 @@
-import { Database, type Statement } from "bun:sqlite";
+import { Database } from "bun:sqlite";
 import type { z } from "zod";
 import type { Id } from "~/src/shared/schema";
 
@@ -45,32 +45,4 @@ export function open(url: URL) {
   database.exec("PRAGMA journal_mode = WAL;");
 
   return database;
-}
-
-/**
- * Get SQL for insert values.
- */
-export function getInsertValues<T extends Record<string, unknown>>(data: T) {
-  return `(${Object.keys(data).join(", ")}) VALUES (${Object.keys(data)
-    .map((key) => `$${key}`)
-    .join(", ")})`;
-}
-
-/**
- * Get SQL for update values.
- */
-export function getUpdateSet<T extends Record<string, unknown>>(data: T) {
-  return Object.entries(data)
-    .map(([key, value]) => (value !== undefined ? `${key} = $${key}` : ""))
-    .filter(Boolean)
-    .join(", ");
-}
-
-/**
- * Query error.
- */
-export class QueryError extends Error {
-  constructor(query: Statement) {
-    super(`Query failed: ${query}`);
-  }
 }

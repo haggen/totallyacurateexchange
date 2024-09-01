@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
+import { api } from "~/src/api";
 import { prepare } from "~/src/database";
-import * as users from "~/src/modules/users/api";
 import { create, destroy, find } from "./api";
 
 const now = new Date("1990-05-04T10:00:00Z");
@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 test("create", async () => {
-  const user = await users.create({
+  const user = await api.users.create({
     payload: {
       name: "Test",
       email: "test@example.com",

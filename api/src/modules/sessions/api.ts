@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { database } from "~/src/database";
 import type { Bindings, Context } from "~/src/shared/database";
-import { QueryError, getInsertValues } from "~/src/shared/database";
-import { select, where } from "~/src/shared/database/query";
+import { QueryError } from "~/src/shared/query/error";
+import { getInsertValues } from "~/src/shared/query/insert";
+import { select, where } from "~/src/shared/query/select";
 import { AutoDateTime, Id } from "~/src/shared/schema";
 import { Time } from "~/src/shared/time";
 
@@ -72,7 +73,7 @@ export async function find(
   context: Context<
     never,
     { expired?: boolean } & (
-      | { id?: string }
+      | { id: string }
       | { limit?: number; offset?: number }
     )
   >,
@@ -85,7 +86,7 @@ export async function find(
     );
   }
 
-  if ("id" in context.options && context.options.id) {
+  if ("id" in context.options) {
     sql.merge(where("id = $id", { id: context.options.id }).limit(1));
   } else {
     if ("limit" in context.options && context.options.limit) {

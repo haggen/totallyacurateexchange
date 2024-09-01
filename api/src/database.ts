@@ -6,13 +6,13 @@ import { open } from "~/src/shared/database";
 /**
  * Global database instance.
  */
-let globalDatabaseInstance: Database;
+let instance: Database;
 
 /**
  * Get global database instance.
  */
 export function database() {
-  return globalDatabaseInstance;
+  return instance;
 }
 
 /**
@@ -35,8 +35,8 @@ export function migrate() {
  * (Re)initialize global database instance and run migrations.
  */
 export function prepare() {
-  globalDatabaseInstance?.close(false);
-  globalDatabaseInstance = open(getConfig("databaseUrl"));
+  instance?.close(false);
+  instance = open(getConfig("databaseUrl"));
 
   migrate();
 }

@@ -1,0 +1,12 @@
+{
+  "john": {
+    "name": "John Doe",
+    "email": "jdoe@example.com",
+    "password": "0123456789abcdef"
+  },
+  "bob": {
+    "name": "Bob Smith",
+    "email": "bsmith@example.com",
+    "password": "a-different-password"
+  }
+}

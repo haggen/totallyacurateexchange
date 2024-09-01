@@ -2,12 +2,10 @@ import * as Bun from "bun";
 import { z } from "zod";
 import { database } from "~/src/database";
 import type { Bindings, Context } from "~/src/shared/database";
-import {
-  QueryError,
-  getInsertValues,
-  getUpdateSet,
-} from "~/src/shared/database";
-import { select, where } from "~/src/shared/database/query";
+import { QueryError } from "~/src/shared/query/error";
+import { getInsertValues } from "~/src/shared/query/insert";
+import { select, where } from "~/src/shared/query/select";
+import { getUpdateSet } from "~/src/shared/query/update";
 import { AutoDateTime, Email, Id, Name } from "~/src/shared/schema";
 
 export const User = z.object({
@@ -109,16 +107,16 @@ export async function update(
 export async function find(
   context: Context<
     never,
-    | { id?: z.input<typeof Id> }
-    | { email?: string }
+    | { id: z.input<typeof Id> }
+    | { email: string }
     | { limit?: number; offset?: number }
   >,
 ) {
   const sql = select("*").from("users");
 
-  if ("id" in context.options && context.options.id) {
+  if ("id" in context.options) {
     sql.merge(where("id = $id", { id: context.options.id }).limit(1));
-  } else if ("email" in context.options && context.options.email) {
+  } else if ("email" in context.options) {
     sql.merge(
       where("email = $email", { email: context.options.email }).limit(1),
     );
@@ -134,7 +132,7 @@ export async function find(
 
   const q = database().query<z.output<User>, Bindings[]>(sql.toString());
 
-  const result = q.get(...sql.bindings);
+  const result = q.all(...sql.bindings);
 
   if (!result) {
     throw new QueryError(q);

@@ -1,57 +1,62 @@
-import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
-
+import { beforeEach, expect, setSystemTime, test } from "bun:test";
 import { prepare } from "~/src/database";
+import { now } from "~/src/shared/test/fixture.json";
+
+import { create } from "./api";
 import { app } from "./app";
+import fixture from "./fixture.json";
 
-const now = new Date("1990-05-04T10:00:00Z");
-
-beforeAll(() => {
+beforeEach(() => {
+  setSystemTime(new Date(now));
   prepare();
 });
 
-beforeEach(() => {
-  setSystemTime(now);
-});
-
 test("POST /", async () => {
-  const example = {
-    name: "Test",
-    email: "test@example.com",
-    password: "0123456789abcdef",
-  };
-
   const resp = await app.request("/", {
     method: "POST",
-    body: JSON.stringify(example),
+    body: JSON.stringify(fixture.john),
     headers: new Headers({ "content-type": "application/json" }),
   });
 
   expect(resp.status).toBe(201);
 
   expect(await resp.json()).toEqual({
-    id: 1,
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    name: example.name,
-    email: example.email,
-    password: expect.any(String),
+    data: {
+      id: 1,
+      createdAt: now,
+      updatedAt: now,
+      name: fixture.john.name,
+      email: fixture.john.email,
+      password: expect.any(String),
+    },
+  });
+});
+
+test("GET /:id", async () => {
+  const john = await create({
+    payload: fixture.john,
+  });
+
+  const resp = await app.request(`/${john.id}`);
+
+  expect(resp.status).toBe(200);
+
+  expect(await resp.json()).toEqual({
+    data: john,
   });
 });
 
 test("PATCH /:id", async () => {
-  const example = {
-    id: 1,
-    name: "Changed",
-    email: "changed@example.com",
-    password: "0123456789abcdef",
-  };
+  const john = await create({
+    payload: fixture.john,
+  });
 
-  const resp = await app.request(`/${example.id}`, {
+  const resp = await app.request(`/${john.id}`, {
     method: "PATCH",
     body: JSON.stringify({
-      name: example.name,
-      email: example.email,
-      password: example.password,
+      name: fixture.bob.name,
+      email: fixture.bob.email,
+      password: fixture.bob.password,
     }),
     headers: new Headers({ "content-type": "application/json" }),
   });
@@ -59,11 +64,11 @@ test("PATCH /:id", async () => {
   expect(resp.status).toBe(200);
 
   expect(await resp.json()).toEqual({
-    id: 1,
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    name: example.name,
-    email: example.email,
-    password: expect.any(String),
+    data: {
+      ...john,
+      name: fixture.bob.name,
+      email: fixture.bob.email,
+      password: expect.any(String),
+    },
   });
 });

@@ -1,23 +1,9 @@
+import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 
-import { getInsertValues, getUpdateSet } from ".";
+import { open } from ".";
 
-test("getInsertValues", () => {
-  const values = getInsertValues({
-    a: 1,
-    b: 2,
-    c: 3,
-  });
-
-  expect(values).toEqual("(a, b, c) VALUES ($a, $b, $c)");
-});
-
-test("getUpdateValues", () => {
-  const values = getUpdateSet({
-    a: 1,
-    b: 2,
-    c: undefined,
-  });
-
-  expect(values).toEqual("a = $a, b = $b");
+test("open", () => {
+  const database = open(new URL("sqlite://"));
+  expect(database).toBeInstanceOf(Database);
 });

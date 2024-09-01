@@ -9,7 +9,7 @@ import {
   orderBy,
   select,
   where,
-} from "./query";
+} from "./select";
 
 test("select", () => {
   const query = select("a", "b", "c");

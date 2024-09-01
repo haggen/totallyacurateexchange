@@ -1,17 +1,15 @@
 import { SQLiteError } from "bun:sqlite";
-import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
+import { beforeEach, expect, setSystemTime, test } from "bun:test";
 import { ZodError } from "zod";
 import { prepare } from "~/src/database";
+import { now } from "~/src/shared/test/fixture.json";
+
 import { create, find, password, update } from "./api";
-
-const now = new Date("1990-05-04T10:00:00Z");
-
-beforeAll(() => {
-  prepare();
-});
+import fixture from "./fixture.json";
 
 beforeEach(() => {
-  setSystemTime(now);
+  setSystemTime(new Date(now));
+  prepare();
 });
 
 test("password", async () => {
@@ -33,99 +31,100 @@ test("create", async () => {
     });
   }).toThrowError(ZodError);
 
-  const payload = {
-    name: "John  Doe ",
-    email: "JohnDoe@Example.com ",
-    password: "password1234567",
-  };
-
-  const result = await create({
-    payload,
-  });
-
-  expect(result).toEqual({
-    id: expect.any(Number),
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    name: "John Doe",
-    email: "johndoe@example.com",
-    password: expect.any(String),
-  });
-
-  expect(await password.verify(payload.password, result.password)).toBeTrue();
-
-  expect(async () => {
-    await create({
-      payload,
-    });
-  }).toThrow(SQLiteError);
-});
-
-test("find", async () => {
-  const john = await find({
-    options: {
-      limit: 1,
+  const john = await create({
+    payload: {
+      email: fixture.john.email,
+      name: fixture.john.name,
+      password: fixture.john.password,
     },
   });
 
   expect(john).toEqual({
     id: expect.any(Number),
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    name: expect.any(String),
-    email: expect.any(String),
+    createdAt: now,
+    updatedAt: now,
+    name: fixture.john.name,
+    email: fixture.john.email,
     password: expect.any(String),
   });
 
-  const subject = [
+  expect(
+    await password.verify(fixture.john.password, john.password),
+  ).toBeTrue();
+
+  expect(async () => {
+    await create({
+      payload: {
+        email: fixture.john.email,
+        name: fixture.john.name,
+        password: fixture.john.password,
+      },
+    });
+  }).toThrow(SQLiteError);
+});
+
+test("find", async () => {
+  const john = await create({
+    payload: {
+      email: fixture.john.email,
+      name: fixture.john.name,
+      password: fixture.john.password,
+    },
+  });
+
+  expect(
+    await find({
+      options: {
+        limit: 1,
+      },
+    }),
+  ).toEqual([john]);
+
+  expect(
     await find({
       options: {
         id: john.id,
       },
     }),
+  ).toEqual([john]);
+
+  expect(
     await find({
       options: {
         email: john.email,
       },
     }),
-  ];
-
-  expect(subject).toEqual([john, john]);
+  ).toEqual([john]);
 });
 
 test("update", async () => {
-  const id = 1;
-
-  expect(async () => {
-    await update({
-      payload: {
-        name: "",
-      },
-      options: {
-        id,
-      },
-    });
+  const john = await create({
+    payload: {
+      email: fixture.john.email,
+      name: fixture.john.name,
+      password: fixture.john.password,
+    },
   });
 
-  const payload = {
-    name: "Bob  Smith ",
-    email: "Bob@Example.com",
-    password: "thisisnewpassword",
-  };
-
-  const result = await update({
-    payload,
-    options: { id },
+  const bob = await update({
+    payload: {
+      name: fixture.bob.name,
+      email: fixture.bob.email,
+      password: fixture.bob.password,
+    },
+    options: {
+      id: john.id,
+    },
   });
 
-  expect(result).toEqual({
-    id,
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    name: "Bob Smith",
-    email: "bob@example.com",
+  expect(bob).toEqual({
+    id: bob.id,
+    createdAt: now,
+    updatedAt: now,
+    name: fixture.bob.name,
+    email: fixture.bob.email,
     password: expect.any(String),
   });
 
-  expect(await password.verify(payload.password, result.password)).toBeTrue();
+  expect(await password.verify(fixture.bob.password, bob.password)).toBeTrue();
 });

@@ -15,10 +15,20 @@ app.post("/", async (ctx) => {
     },
   });
 
-  return ctx.json(user, Status.Created);
+  return ctx.json({ data: user }, Status.Created);
 });
 
-app.patch("/:id", async (ctx) => {
+app.get("/:id{\\d+}", async (ctx) => {
+  const { id } = ctx.req.param();
+
+  const [user] = await api.users.find({
+    options: { id },
+  });
+
+  return ctx.json({ data: user });
+});
+
+app.patch("/:id{\\d+}", async (ctx) => {
   const data = await ctx.req.json();
   const { id } = ctx.req.param();
 
@@ -31,5 +41,5 @@ app.patch("/:id", async (ctx) => {
     options: { id },
   });
 
-  return ctx.json(user);
+  return ctx.json({ data: user });
 });
