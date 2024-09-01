@@ -1,33 +1,26 @@
 import { beforeAll, beforeEach, expect, setSystemTime, test } from "bun:test";
-
 import { api } from "~/src/api";
 import { prepare } from "~/src/database";
 import { Status } from "~/src/shared/response";
-import { app } from "./app";
+import { now } from "~/src/shared/test/fixtures.json";
 
-const now = new Date("1990-05-04T10:00:00Z");
+import { app } from "./app";
+import * as fixtures from "./fixtures.json";
 
 beforeAll(() => {
   prepare();
 });
 
 beforeEach(() => {
-  setSystemTime(now);
+  setSystemTime(new Date(now));
 });
 
-const example = {
-  id: 1,
-  name: "Test",
-  email: "test@example.com",
-  password: "0123456789abcdef",
-};
-
 test("POST /", async () => {
-  const user = await api.users.create({
+  const john = await api.users.create({
     payload: {
-      name: example.name,
-      email: example.email,
-      password: example.password,
+      name: fixtures.john.name,
+      email: fixtures.john.email,
+      password: fixtures.john.password,
     },
   });
 
@@ -46,7 +39,7 @@ test("POST /", async () => {
     await app.request("/", {
       method: "POST",
       body: JSON.stringify({
-        email: example.email,
+        email: fixtures.john.email,
         password: "",
       }),
       headers: new Headers({ "content-type": "application/json" }),
@@ -56,8 +49,8 @@ test("POST /", async () => {
   const resp = await app.request("/", {
     method: "POST",
     body: JSON.stringify({
-      email: example.email,
-      password: example.password,
+      email: fixtures.john.email,
+      password: fixtures.john.password,
     }),
     headers: new Headers({ "content-type": "application/json" }),
   });
@@ -67,9 +60,9 @@ test("POST /", async () => {
   expect(await resp.json()).toEqual({
     data: {
       id: expect.any(String),
-      createdAt: now.toISOString(),
+      createdAt: now,
       expiresAt: expect.any(String),
-      userId: user.id,
+      userId: john.id,
     },
   });
 });

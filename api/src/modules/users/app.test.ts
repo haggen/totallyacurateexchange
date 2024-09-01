@@ -1,10 +1,10 @@
 import { beforeEach, expect, setSystemTime, test } from "bun:test";
 import { prepare } from "~/src/database";
-import { now } from "~/src/shared/test/fixture.json";
+import { now } from "~/src/shared/test/fixtures.json";
 
 import { create } from "./api";
 import { app } from "./app";
-import fixture from "./fixture.json";
+import fixtures from "./fixtures.json";
 
 beforeEach(() => {
   setSystemTime(new Date(now));
@@ -14,7 +14,7 @@ beforeEach(() => {
 test("POST /", async () => {
   const resp = await app.request("/", {
     method: "POST",
-    body: JSON.stringify(fixture.john),
+    body: JSON.stringify(fixtures.john),
     headers: new Headers({ "content-type": "application/json" }),
   });
 
@@ -25,8 +25,8 @@ test("POST /", async () => {
       id: 1,
       createdAt: now,
       updatedAt: now,
-      name: fixture.john.name,
-      email: fixture.john.email,
+      name: fixtures.john.name,
+      email: fixtures.john.email,
       password: expect.any(String),
     },
   });
@@ -34,7 +34,7 @@ test("POST /", async () => {
 
 test("GET /:id", async () => {
   const john = await create({
-    payload: fixture.john,
+    payload: fixtures.john,
   });
 
   const resp = await app.request(`/${john.id}`);
@@ -48,15 +48,15 @@ test("GET /:id", async () => {
 
 test("PATCH /:id", async () => {
   const john = await create({
-    payload: fixture.john,
+    payload: fixtures.john,
   });
 
   const resp = await app.request(`/${john.id}`, {
     method: "PATCH",
     body: JSON.stringify({
-      name: fixture.bob.name,
-      email: fixture.bob.email,
-      password: fixture.bob.password,
+      name: fixtures.bob.name,
+      email: fixtures.bob.email,
+      password: fixtures.bob.password,
     }),
     headers: new Headers({ "content-type": "application/json" }),
   });
@@ -66,8 +66,8 @@ test("PATCH /:id", async () => {
   expect(await resp.json()).toEqual({
     data: {
       ...john,
-      name: fixture.bob.name,
-      email: fixture.bob.email,
+      name: fixtures.bob.name,
+      email: fixtures.bob.email,
       password: expect.any(String),
     },
   });

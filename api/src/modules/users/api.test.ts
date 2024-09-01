@@ -2,10 +2,10 @@ import { SQLiteError } from "bun:sqlite";
 import { beforeEach, expect, setSystemTime, test } from "bun:test";
 import { ZodError } from "zod";
 import { prepare } from "~/src/database";
-import { now } from "~/src/shared/test/fixture.json";
+import { now } from "~/src/shared/test/fixtures.json";
 
 import { create, find, password, update } from "./api";
-import fixture from "./fixture.json";
+import fixtures from "./fixtures.json";
 
 beforeEach(() => {
   setSystemTime(new Date(now));
@@ -33,9 +33,9 @@ test("create", async () => {
 
   const john = await create({
     payload: {
-      email: fixture.john.email,
-      name: fixture.john.name,
-      password: fixture.john.password,
+      email: fixtures.john.email,
+      name: fixtures.john.name,
+      password: fixtures.john.password,
     },
   });
 
@@ -43,21 +43,21 @@ test("create", async () => {
     id: expect.any(Number),
     createdAt: now,
     updatedAt: now,
-    name: fixture.john.name,
-    email: fixture.john.email,
+    name: fixtures.john.name,
+    email: fixtures.john.email,
     password: expect.any(String),
   });
 
   expect(
-    await password.verify(fixture.john.password, john.password),
+    await password.verify(fixtures.john.password, john.password),
   ).toBeTrue();
 
   expect(async () => {
     await create({
       payload: {
-        email: fixture.john.email,
-        name: fixture.john.name,
-        password: fixture.john.password,
+        email: fixtures.john.email,
+        name: fixtures.john.name,
+        password: fixtures.john.password,
       },
     });
   }).toThrow(SQLiteError);
@@ -66,9 +66,9 @@ test("create", async () => {
 test("find", async () => {
   const john = await create({
     payload: {
-      email: fixture.john.email,
-      name: fixture.john.name,
-      password: fixture.john.password,
+      email: fixtures.john.email,
+      name: fixtures.john.name,
+      password: fixtures.john.password,
     },
   });
 
@@ -100,17 +100,17 @@ test("find", async () => {
 test("update", async () => {
   const john = await create({
     payload: {
-      email: fixture.john.email,
-      name: fixture.john.name,
-      password: fixture.john.password,
+      email: fixtures.john.email,
+      name: fixtures.john.name,
+      password: fixtures.john.password,
     },
   });
 
   const bob = await update({
     payload: {
-      name: fixture.bob.name,
-      email: fixture.bob.email,
-      password: fixture.bob.password,
+      name: fixtures.bob.name,
+      email: fixtures.bob.email,
+      password: fixtures.bob.password,
     },
     options: {
       id: john.id,
@@ -121,10 +121,10 @@ test("update", async () => {
     id: bob.id,
     createdAt: now,
     updatedAt: now,
-    name: fixture.bob.name,
-    email: fixture.bob.email,
+    name: fixtures.bob.name,
+    email: fixtures.bob.email,
     password: expect.any(String),
   });
 
-  expect(await password.verify(fixture.bob.password, bob.password)).toBeTrue();
+  expect(await password.verify(fixtures.bob.password, bob.password)).toBeTrue();
 });
