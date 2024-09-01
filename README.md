@@ -14,7 +14,10 @@ This simulation streamlines many aspects of a real stock market to make it more 
 
 ## Development
 
-The game is broken down in client and API. Both are written in TypeScript but the API runs on Bun and the client is a React application bundled with Parcel. The database is SQLite.
+The game is broken down as:
+
+1. [Client (front-end)](./client), and;
+2. [API (back-end)](./api).
 
 ...
 
