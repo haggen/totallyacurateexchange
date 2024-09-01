@@ -6,7 +6,6 @@
   "module": "src/index.ts",
   "scripts": {
     "start": "bun --hot src/index.ts",
-    "test": "bun test",
     "fix": "biome check --write",
     "check": "biome check && tsc --noEmit"
   },
