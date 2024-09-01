@@ -2,7 +2,8 @@
 
 > **Totally Acurate Exchange** is a browser based multiplayer simulation game of a simplified stock market.
 
-[**Play it free at totallyacurateexchange.crz.li!**](https://totallyacurateexchange.crz.li)
+> [!WARNING]
+> Not ready for production yet.
 
 This simulation streamlines many aspects of a real stock market to make it more accessible for the player and for the developers. There are fewer financial instruments, limited number of fictional stocks, and a simplified order matching process and price calculation.
 
@@ -19,4 +20,4 @@ The game is broken down in client and API. Both are written in TypeScript but th
 
 ## Legal
 
-Apache-2.0 ©️ 2024 Arthur Corenzan and contributors.
+Apache-2.0 ©️ 2024 Arthur Corenzan and Totally Acurate Exchange contributors.
