@@ -1,7 +1,8 @@
 import type { Serve } from "bun";
 import { Hono } from "hono";
-import { migrate } from "~/src/api";
+import { migrate, seed } from "~/src/api";
 import { app as sessions } from "~/src/app/sessions/app";
+import { app as stocks } from "~/src/app/stocks/app";
 import { app as users } from "~/src/app/users/app";
 import { getConfig } from "~/src/config";
 import { Database } from "~/src/shared/database";
@@ -25,6 +26,7 @@ app.use(getDatabaser(getConfig("databaseUrl")));
  * Route table.
  */
 app.route("/users", users);
+app.route("/stocks", stocks);
 app.route("/sessions", sessions);
 
 /**

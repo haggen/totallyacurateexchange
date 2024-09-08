@@ -23,7 +23,7 @@ app.post("/", async (ctx) => {
 
   const authenticated = await api.users.password.verify(
     data.password,
-    user.password
+    user.password,
   );
 
   if (!authenticated) {
