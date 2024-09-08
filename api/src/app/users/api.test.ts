@@ -5,7 +5,24 @@ import { now } from "~/src/shared/test";
 
 import { Time } from "~/src/shared/time";
 import { create, find, password, update } from "./api";
-import fixtures from "./fixtures.json";
+
+const fixtures = {
+  john: {
+    id: 1,
+    createdAt: "1990-05-04T07:00:00.000Z",
+    expiresAt: "1990-05-04T07:00:00.000Z",
+    name: "John Doe",
+    email: "jdoe@example.com",
+    password: "0123456789abcdef",
+  },
+  bob: {
+    createdAt: "1990-05-04T07:00:00.000Z",
+    expiresAt: "1990-05-04T07:00:00.000Z",
+    name: "Bob Smith",
+    email: "bsmith@example.com",
+    password: "a-different-password",
+  },
+};
 
 test("password", async () => {
   const hash = await password.hash("password");

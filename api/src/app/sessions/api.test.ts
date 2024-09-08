@@ -5,7 +5,14 @@ import { now } from "~/src/shared/test";
 
 import { Time } from "~/src/shared/time";
 import { create, destroy, find, migrate } from "./api";
-import fixtures from "./fixtures.json";
+
+const fixtures = {
+  john: {
+    name: "John Doe",
+    email: "jdoe@example.com",
+    password: "0123456789abcdef",
+  },
+};
 
 test("create", async () => {
   setSystemTime(now);
