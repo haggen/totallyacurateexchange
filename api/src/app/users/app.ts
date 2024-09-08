@@ -19,6 +19,13 @@ app.post("/", async (ctx) => {
     },
   });
 
+  await api.portfolios.create({
+    database,
+    payload: {
+      userId: user.id,
+    },
+  });
+
   return ctx.json({ data: user }, Status.Created);
 });
 

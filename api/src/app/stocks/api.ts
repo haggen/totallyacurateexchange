@@ -33,7 +33,7 @@ export async function migrate(database: Database) {
         updatedAt TEXT NOT NULL,
         name TEXT NOT NULL UNIQUE
       );
-    `
+    `,
   );
 }
 
@@ -43,8 +43,8 @@ export async function migrate(database: Database) {
 export async function seed(database: Database) {
   const { count } = must(
     await database.get<{ count: number }>(
-      "SELECT COUNT(*) AS count FROM stocks;"
-    )
+      "SELECT COUNT(*) AS count FROM stocks;",
+    ),
   );
 
   if (count > 0) {
@@ -92,8 +92,8 @@ export async function create(ctx: Context<Pick<z.input<Stock>, "name">>) {
   return must(
     await ctx.database.get<z.output<Stock>>(
       `INSERT INTO stocks ${getInsertValues(data)} RETURNING *;`,
-      data
-    )
+      data,
+    ),
   );
 }
 
@@ -101,12 +101,14 @@ export async function create(ctx: Context<Pick<z.input<Stock>, "name">>) {
  * Find existing stocks.
  */
 export async function find(
-  ctx: Context<{ limit?: number; offset?: number } | { id: z.input<typeof Id> }>
+  ctx: Context<
+    { limit?: number; offset?: number } | { id: z.input<typeof Id> }
+  >,
 ) {
   const query = select("*").from("stocks");
 
   scope(ctx.payload, "id", (id) =>
-    query.where("id = ?", Id.parse(id)).limit(1)
+    query.where("id = ?", Id.parse(id)).limit(1),
   );
 
   scope(ctx.payload, "limit", (limit) => query.limit(limit));

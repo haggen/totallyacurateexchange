@@ -1,3 +1,4 @@
+import * as portfolios from "~/src/app/portfolios/api";
 import * as sessions from "~/src/app/sessions/api";
 import * as stocks from "~/src/app/stocks/api";
 import * as users from "~/src/app/users/api";
@@ -7,6 +8,7 @@ import type { Database } from "~/src/shared/database";
  * Data API entrypoint.
  */
 export const api = {
+  portfolios,
   stocks,
   users,
   sessions,
