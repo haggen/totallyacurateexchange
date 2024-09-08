@@ -47,6 +47,7 @@ export function getLogger() {
 
     print(
       "log",
+      "request",
       ctx.req.method,
       new URL(ctx.req.url).pathname,
       ctx.res.status,
@@ -61,6 +62,7 @@ export function getLogger() {
 export function getDatabaser(databaseUrl: URL) {
   return async (ctx: Context<Env>, next: Next) => {
     await using database = await Database.open(databaseUrl);
+    database.verbose = true;
     ctx.set("database", database);
     await next();
   };
