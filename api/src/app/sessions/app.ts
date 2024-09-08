@@ -23,7 +23,7 @@ app.post("/", async (ctx) => {
 
   const authenticated = await api.users.password.verify(
     data.password,
-    user.password,
+    user.password
   );
 
   if (!authenticated) {
@@ -69,5 +69,5 @@ app.delete("/:id{\\d+}", async (ctx) => {
     throw new HTTPException(Status.NotFound);
   }
 
-  return ctx.json({ data: session }, Status.NoContent);
+  return ctx.json({ data: session }, Status.Ok);
 });
