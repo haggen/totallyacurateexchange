@@ -13,10 +13,11 @@ test("getUpdateValues", () => {
 });
 
 test("getInsertValues", () => {
-  const values = getInsertValues({
-    a: 1,
-    b: 2,
-  });
-
-  expect(values).toEqual("(a, b) VALUES ($a, $b)");
+  expect(
+    getInsertValues({
+      a: 1,
+      b: 2,
+      c: undefined,
+    }),
+  ).toEqual("(a, b) VALUES ($a, $b)");
 });

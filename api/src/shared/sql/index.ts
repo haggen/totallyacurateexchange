@@ -7,7 +7,7 @@ export function getUpdateSet<T extends Record<string, Value | undefined>>(
   data: T,
 ) {
   return Object.entries(data)
-    .map(([key, value]) => (value !== undefined ? `${key} = $${key}` : ""))
+    .map(([key, value]) => (value === undefined ? "" : `${key} = $${key}`))
     .filter(Boolean)
     .join(", ");
 }
@@ -15,8 +15,12 @@ export function getUpdateSet<T extends Record<string, Value | undefined>>(
 /**
  * Get SQL for insert values.
  */
-export function getInsertValues<T extends Record<string, Value>>(data: T) {
-  const keys = Object.keys(data);
+export function getInsertValues<T extends Record<string, Value | undefined>>(
+  data: T,
+) {
+  const keys = Object.entries(data)
+    .map(([key, value]) => (value === undefined ? "" : key))
+    .filter(Boolean);
 
   return `(${keys.join(", ")}) VALUES (${keys
     .map((key) => `$${key}`)
