@@ -1,7 +1,7 @@
 /**
  * Unauthorized database operation.
  */
-export class Unauthorized extends Error {
+export class UnauthorizedError extends Error {
   constructor() {
     super("Unauthorized");
   }
