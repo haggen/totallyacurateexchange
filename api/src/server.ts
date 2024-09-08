@@ -13,7 +13,7 @@ const app = new Hono<Env>();
 {
   await using database = await Database.open(getConfig("databaseUrl"));
   database.verbose = true;
-  migrate(database);
+  await migrate(database);
 }
 
 app.onError(handleErrors);

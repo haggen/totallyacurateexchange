@@ -39,9 +39,9 @@ export type Session = typeof Session;
  * Run migrations.
  */
 export async function migrate(database: Database) {
-  api.users.migrate(database);
+  await api.users.migrate(database);
 
-  database.run(
+  await database.run(
     `
       CREATE TABLE IF NOT EXISTS sessions (
         id INTEGER PRIMARY KEY,

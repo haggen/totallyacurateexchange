@@ -13,15 +13,15 @@ export const api = {
 /**
  * Run all migrations.
  */
-export function migrate(database: Database) {
-  for (const module of Object.values(api)) {
+export async function migrate(database: Database) {
+  for await (const module of Object.values(api)) {
     if (
       typeof module === "object" &&
       module !== null &&
       "migrate" in module &&
       typeof module.migrate === "function"
     ) {
-      module.migrate(database);
+      await module.migrate(database);
     }
   }
 }
