@@ -1,0 +1,21 @@
+{
+  "john": {
+    "name": "John Doe",
+    "email": "jdoe@example.com",
+    "password": "0123456789abcdef"
+  },
+  "invalid": {
+    "id": 0,
+    "createdAt": "",
+    "expiresAt": "",
+    "userId": 0,
+    "token": ""
+  },
+  "expired": {
+    "id": 1,
+    "createdAt": "1990-05-04T07:00:00.000Z",
+    "expiresAt": "1990-05-04T07:00:00.000Z",
+    "userId": 0,
+    "token": ""
+  }
+}

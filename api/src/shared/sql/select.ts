@@ -1,25 +1,25 @@
 import type { Bindings } from "~/src/shared/database";
 
 class Columns {
-  content: string[] = [];
+  values: string[] = [];
 
-  constructor(...content: string[]) {
-    this.content.push(...content);
+  constructor(...values: string[]) {
+    this.values.push(...values);
   }
 
   toString() {
-    if (this.content.length < 1) {
+    if (this.values.length < 1) {
       return "";
     }
-    return `SELECT ${this.content.join(", ")}`;
+    return `SELECT ${this.values.join(", ")}`;
   }
 
   merge(columns: Columns) {
-    this.content.push(...columns.content);
+    this.values.push(...columns.values);
   }
 
   reset(...content: string[]) {
-    this.content = [...content];
+    this.values = [...content];
   }
 }
 
@@ -188,7 +188,7 @@ class Offset {
   }
 }
 
-class SelectQuery {
+export class SelectQuery {
   parts = {
     columns: new Columns(),
     sources: new Sources(),
@@ -263,6 +263,10 @@ class SelectQuery {
       .map(String)
       .filter(Boolean)
       .join(" ")};`;
+  }
+
+  toParams() {
+    return [this.toString(), ...this.bindings] as const;
   }
 }
 

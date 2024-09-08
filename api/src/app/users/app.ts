@@ -1,14 +1,17 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { api } from "~/src/api";
+import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 
-export const app = new Hono();
+export const app = new Hono<Env>();
 
 app.post("/", async (ctx) => {
+  const database = ctx.get("database");
   const data = await ctx.req.json();
 
   const user = await api.users.create({
+    database,
     payload: {
       name: data.name,
       email: data.email,
@@ -20,10 +23,12 @@ app.post("/", async (ctx) => {
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
+  const database = ctx.get("database");
   const { id } = ctx.req.param();
 
   const [user] = await api.users.find({
-    options: { id },
+    database,
+    payload: { id },
   });
 
   if (!user) {
@@ -34,16 +39,18 @@ app.get("/:id{\\d+}", async (ctx) => {
 });
 
 app.patch("/:id{\\d+}", async (ctx) => {
+  const database = ctx.get("database");
   const data = await ctx.req.json();
   const { id } = ctx.req.param();
 
   const user = await api.users.update({
+    database,
     payload: {
+      id,
       name: data.name,
       email: data.email,
       password: data.password,
     },
-    options: { id },
   });
 
   if (!user) {

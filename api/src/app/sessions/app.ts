@@ -1,21 +1,24 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { api } from "~/src/api";
+import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 
-export const app = new Hono();
+export const app = new Hono<Env>();
 
 app.post("/", async (ctx) => {
+  const database = ctx.get("database");
   const data = await ctx.req.json();
 
   const [user] = await api.users.find({
-    options: {
+    database,
+    payload: {
       email: data.email,
     },
   });
 
   if (!user) {
-    throw new HTTPException(Status.Unauthorized);
+    throw new HTTPException(Status.NotFound);
   }
 
   const authenticated = await api.users.password.verify(
@@ -28,6 +31,7 @@ app.post("/", async (ctx) => {
   }
 
   const session = await api.sessions.create({
+    database,
     payload: {
       userId: user.id,
     },
@@ -37,10 +41,12 @@ app.post("/", async (ctx) => {
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
+  const database = ctx.get("database");
   const { id } = ctx.req.param();
 
   const [session] = await api.sessions.find({
-    options: { id },
+    database,
+    payload: { id },
   });
 
   if (!session) {
@@ -51,10 +57,12 @@ app.get("/:id{\\d+}", async (ctx) => {
 });
 
 app.delete("/:id{\\d+}", async (ctx) => {
+  const database = ctx.get("database");
   const { id } = ctx.req.param();
 
   const session = await api.sessions.destroy({
-    options: { id },
+    database,
+    payload: { id },
   });
 
   if (!session) {

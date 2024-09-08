@@ -5,5 +5,12 @@
   },
   "formatter": {
     "indentStyle": "space"
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noBannedTypes": "warn"
+      }
+    }
   }
 }

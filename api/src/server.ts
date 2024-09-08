@@ -1,34 +1,32 @@
+import type { Serve } from "bun";
 import { Hono } from "hono";
+import { migrate } from "~/src/api";
+import { app as users } from "~/src/app/users/app";
 import { getConfig } from "~/src/config";
-import { prepare } from "~/src/database";
-import { app as users } from "~/src/modules/users/app";
-import { handleError } from "~/src/shared/response";
+import { Database } from "~/src/shared/database";
+import type { Env } from "~/src/shared/request";
+import { getDatabaser, getLogger, handleErrors } from "~/src/shared/request";
 
-prepare();
+const app = new Hono<Env>();
 
-const app = new Hono();
+{
+  await using database = await Database.open(getConfig("databaseUrl"));
+  migrate(database);
+}
 
-app.onError(handleError);
+app.onError(handleErrors);
+app.use(getLogger());
+app.use(getDatabaser(getConfig("databaseUrl")));
 
-app.use(async (ctx, next) => {
-  performance.mark("request");
-
-  await next();
-
-  const { duration } = performance.measure("request", "request");
-
-  console.log(
-    new Date().toISOString(),
-    ctx.req.method,
-    new URL(ctx.req.url).pathname,
-    ctx.res.status,
-    `${duration.toFixed(2)}ms`,
-  );
-});
-
+/**
+ * Route table.
+ */
 app.route("/users", users);
 
+/**
+ * @see https://bun.sh/docs/api/http#export-default-syntax
+ */
 export default {
   port: getConfig("port"),
   fetch: app.fetch,
-};
+} satisfies Serve;
