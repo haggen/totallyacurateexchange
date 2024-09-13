@@ -37,17 +37,17 @@ describe("Patch", () => {
   });
 
   test("push", () => {
-    patch.push({ c: 3 });
-    expect(patch.data).toEqual({ a: 1, b: 2, c: 3 });
+    patch.push({ c: ["? + ?", 3, 4] });
+    expect(patch.data).toEqual({ a: 1, b: 2, c: ["? + ?", 3, 4] });
   });
 
   test("toString", () => {
     patch.push({ d: undefined });
-    expect(patch.toString()).toEqual("a = ?, b = ?, c = ?");
+    expect(patch.toString()).toEqual("a = ?, b = ?, c = ? + ?");
   });
 
   test("bindings", () => {
-    expect(patch.bindings).toEqual([1, 2, 3]);
+    expect(patch.bindings).toEqual([1, 2, 3, 4]);
   });
 });
 

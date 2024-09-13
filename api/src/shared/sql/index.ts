@@ -2,33 +2,38 @@ import type { Value } from "~/src/shared/database";
 
 type Component = string | { toString(): string; bindings?: Value[] };
 
-type Data = Record<string, undefined | Value>;
+type Expression = [string, ...Value[]];
+
+type PatchData = Record<string, undefined | Value | Expression>;
+type EntryData = Record<string, undefined | Value>;
 
 /**
  * SET component of an UPDATE query.
  */
 export class Patch {
-  data: Data = {};
+  data: PatchData = {};
 
-  constructor(data?: Data) {
+  constructor(data?: PatchData) {
     if (data) {
       this.set(data);
     }
   }
 
   get bindings() {
-    return Object.values(this.data).filter((value) => value !== undefined);
+    return Object.values(this.data)
+      .filter((value) => value !== undefined)
+      .flatMap((value) => (Array.isArray(value) ? value.slice(1) : value));
   }
 
   merge(patch: Patch) {
     this.data = { ...this.data, ...patch.data };
   }
 
-  set(data: Data) {
+  set(data: PatchData) {
     this.data = { ...data };
   }
 
-  push(data: Data) {
+  push(data: PatchData) {
     this.data = { ...this.data, ...data };
   }
 
@@ -38,7 +43,13 @@ export class Patch {
     }
 
     return Object.entries(this.data)
-      .map(([key, value]) => (value === undefined ? "" : `${key} = ?`))
+      .map(([key, value]) =>
+        value === undefined
+          ? ""
+          : Array.isArray(value)
+            ? `${key} = ${value[0]}`
+            : `${key} = ?`,
+      )
       .filter(Boolean)
       .join(", ");
   }
@@ -48,9 +59,9 @@ export class Patch {
  * VALUES component of an INSERT query.
  */
 export class Entry {
-  data: Data = {};
+  data: EntryData = {};
 
-  constructor(data?: Data) {
+  constructor(data?: EntryData) {
     if (data) {
       this.set(data);
     }
@@ -64,11 +75,11 @@ export class Entry {
     this.data = { ...this.data, ...entry.data };
   }
 
-  set(data: Data) {
+  set(data: EntryData) {
     this.data = { ...data };
   }
 
-  push(data: Data) {
+  push(data: EntryData) {
     this.data = { ...this.data, ...data };
   }
 

@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { z } from "zod";
 import { api } from "~/src/api";
-import { UnauthorizedError } from "~/src/shared/error";
 import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 
@@ -10,99 +9,134 @@ export const app = new Hono<Env<z.infer<typeof api.sessions.Session>>>();
 
 app.post("/", async (ctx) => {
   const database = ctx.get("database");
-  const session = ctx.get("session");
-  const data = await ctx.req.json();
 
-  if (!session) {
-    throw new UnauthorizedError();
+  const trades: z.infer<typeof api.trades.Trade>[] = [];
+
+  const bids = await database.all<z.infer<typeof api.orders.Order>>(
+    "SELECT * FROM orders WHERE type = 'bid' AND status = 'pending' ORDER BY createdAt ASC;"
+  );
+
+  const asks = await database.all<z.infer<typeof api.orders.Order>>(
+    "SELECT * FROM orders WHERE type = 'ask' AND status = 'pending' ORDER BY createdAt ASC;"
+  );
+
+  if (bids.length === 0 || asks.length === 0) {
+    return ctx.json(undefined, Status.NoContent);
   }
 
-  const [portfolio] = await api.portfolios.find({
-    database,
-    payload: { id: data.portfolioId },
-  });
+  for await (const bid of bids) {
+    while (bid.remaining > 0) {
+      const ask = asks.find(
+        (ask) =>
+          ask.status === "pending" &&
+          ask.stockId === bid.stockId &&
+          ask.price <= bid.price
+      );
 
-  if (!portfolio) {
-    throw new HTTPException(Status.UnprocessableEntity);
-  }
+      if (!ask) {
+        break;
+      }
 
-  if (portfolio.userId !== session.userId) {
-    throw new HTTPException(Status.Unauthorized);
-  }
+      const volume = Math.min(bid.remaining, ask.remaining);
+      const price = volume * bid.price;
 
-  const [holding] = await api.holdings.find({
-    database,
-    payload: { portfolioId: data.portfolioId, stockId: data.stockId },
-  });
+      if (bid.remaining > ask.remaining) {
+        Object.assign(
+          bid,
+          await database.get<z.infer<typeof api.orders.Order>>(
+            "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
+            ask.remaining,
+            bid.id
+          )
+        );
 
-  if (!holding) {
-    throw new HTTPException(Status.UnprocessableEntity);
-  }
+        Object.assign(
+          ask,
+          await database.get<z.infer<typeof api.orders.Order>>(
+            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
+            ask.id
+          )
+        );
+      } else if (bid.remaining < ask.remaining) {
+        Object.assign(
+          bid,
+          await database.get<z.infer<typeof api.orders.Order>>(
+            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
+            bid.id
+          )
+        );
 
-  const order = await api.orders.create({
-    database,
-    payload: {
-      portfolioId: data.portfolioId,
-      stockId: data.stockId,
-      type: data.type,
-      price: data.price,
-      volume: data.volume,
-    },
-  });
+        Object.assign(
+          ask,
+          await database.get<z.infer<typeof api.orders.Order>>(
+            "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
+            bid.remaining,
+            ask.id
+          )
+        );
+      } else {
+        Object.assign(
+          bid,
+          await database.get<z.infer<typeof api.orders.Order>>(
+            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
+            bid.id
+          )
+        );
 
-  if (order.type === "ask") {
-    if (holding.volume < data.volume) {
-      throw new HTTPException(Status.UnprocessableEntity);
+        Object.assign(
+          ask,
+          await database.get<z.infer<typeof api.orders.Order>>(
+            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
+            ask.id
+          )
+        );
+      }
+
+      await database.run(
+        "UPDATE portfolios SET balance = balance + ? WHERE id = ?;",
+        price,
+        ask.portfolioId
+      );
+
+      trades.push(
+        await api.trades.create({
+          database,
+          payload: {
+            bidId: bid.id,
+            askId: ask.id,
+            volume,
+          },
+        })
+      );
     }
-
-    await api.holdings.update({
-      database,
-      payload: {
-        id: holding.id,
-        volume: holding.volume - data.volume,
-      },
-    });
-  } else if (order.type === "bid") {
-    const cost = data.price * data.volume;
-    if (portfolio.balance < cost) {
-      throw new HTTPException(Status.UnprocessableEntity);
-    }
-
-    await api.portfolios.update({
-      database,
-      payload: {
-        id: portfolio.id,
-        balance: portfolio.balance - cost,
-      },
-    });
   }
 
-  return ctx.json({ data: order }, Status.Created);
+  return ctx.json({ data: trades }, Status.Created);
 });
 
 app.get("/", async (ctx) => {
   const database = ctx.get("database");
 
-  const orders = await api.orders.find({
+  const trades = await api.trades.find({
     database,
     payload: {},
   });
 
-  return ctx.json({ data: orders }, Status.Ok);
+  return ctx.json({ data: trades }, Status.Ok);
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
   const database = ctx.get("database");
   const { id } = ctx.req.param();
 
-  const [order] = await api.orders.find({
+  const [trade] = await api.orders.find({
     database,
     payload: { id },
   });
 
-  if (!order) {
+  if (!trade) {
     throw new HTTPException(Status.NotFound);
   }
 
-  return ctx.json({ data: order });
+  return ctx.json({ data: trade });
 });

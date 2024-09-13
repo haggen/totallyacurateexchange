@@ -6,6 +6,7 @@ import { app as orders } from "~/src/app/orders/app";
 import { app as portfolios } from "~/src/app/portfolios/app";
 import { app as sessions } from "~/src/app/sessions/app";
 import { app as stocks } from "~/src/app/stocks/app";
+import { app as trades } from "~/src/app/trades/app";
 import { app as users } from "~/src/app/users/app";
 import { getConfig } from "~/src/config";
 import { Database } from "~/src/shared/database";
@@ -41,12 +42,13 @@ app.use(
 /**
  * Route table.
  */
-app.route("/users", users);
-app.route("/stocks", stocks);
-app.route("/sessions", sessions);
-app.route("/portfolios", portfolios);
 app.route("/holdings", holdings);
 app.route("/orders", orders);
+app.route("/portfolios", portfolios);
+app.route("/sessions", sessions);
+app.route("/stocks", stocks);
+app.route("/trades", trades);
+app.route("/users", users);
 
 /**
  * Server banner.

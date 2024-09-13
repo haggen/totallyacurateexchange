@@ -98,10 +98,13 @@ export async function create(
 export async function find(
   ctx: Context<
     | {
-        limit?: number;
-        offset?: number;
+        type?: z.input<typeof Order.shape.type>;
+        price?: number;
+        remaining?: number;
         stockId?: z.input<typeof Id>;
         portfolioId?: z.input<typeof Id>;
+        limit?: number;
+        offset?: number;
       }
     | { id: z.input<typeof Id> }
   >,
@@ -113,6 +116,18 @@ export async function find(
   scope(ctx.payload, "id", (id) => {
     criteria.set("id = ?", Id.parse(id));
     limit.set(1);
+  });
+
+  scope(ctx.payload, "type", (type) => {
+    criteria.push("type = ?", Order.shape.type.parse(type));
+  });
+
+  scope(ctx.payload, "price", (price) => {
+    criteria.push("price <= ?", price);
+  });
+
+  scope(ctx.payload, "remaining", (remaining) => {
+    criteria.push("remaining >= ?", remaining);
   });
 
   scope(ctx.payload, "portfolioId", (portfolioId) => {
