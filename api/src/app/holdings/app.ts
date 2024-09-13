@@ -37,10 +37,14 @@ app.get("/:id{\\d+}", async (ctx) => {
   const database = ctx.get("database");
   const { id } = ctx.req.param();
 
-  const holding = await api.holdings.find({
+  const [holding] = await api.holdings.find({
     database,
     payload: { id },
   });
+
+  if (!holding) {
+    throw new HTTPException(Status.NotFound);
+  }
 
   return ctx.json({ data: holding });
 });

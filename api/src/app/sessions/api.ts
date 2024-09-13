@@ -4,8 +4,7 @@ import type { Context, Database } from "~/src/shared/database";
 import { must } from "~/src/shared/must";
 import { AutoDateTime, Id } from "~/src/shared/schema";
 import { scope } from "~/src/shared/scope";
-import { getInsertValues } from "~/src/shared/sql";
-import { select } from "~/src/shared/sql/select";
+import * as sql from "~/src/shared/sql";
 import { Time } from "~/src/shared/time";
 
 /**
@@ -67,10 +66,12 @@ export async function create(
     token: true,
   }).parse(ctx.payload);
 
+  const entry = new sql.Entry(data);
+
   return must(
     await ctx.database.get<z.output<Session>>(
-      `INSERT INTO sessions ${getInsertValues(data)} RETURNING *;`,
-      data,
+      `INSERT INTO sessions ${entry} RETURNING *;`,
+      ...entry.bindings,
     ),
   );
 }
@@ -81,47 +82,48 @@ export async function create(
 export async function find(
   ctx: Context<
     { expired?: boolean; limit?: number; offset?: number } & (
-      | { id: z.input<typeof Session.shape.id> }
+      | { id: z.input<typeof Id> }
       | { token: string }
       | {}
     )
   >,
 ) {
-  const query = select("*").from("sessions");
-
   ctx.payload.expired ??= false;
 
-  scope(ctx.payload, "id", (id) =>
-    query.where("id = ?", Session.shape.id.parse(id)).limit(1),
-  );
+  const criteria = new sql.Criteria();
+  const limit = new sql.Limit();
+  const offset = new sql.Offset();
 
-  scope(ctx.payload, "token", (token) =>
-    query.where("token = ?", Session.shape.token.parse(token)).limit(1),
-  );
-
-  scope(ctx.payload, "expired", (shouldIncludeExpired) => {
-    if (!shouldIncludeExpired) {
-      query.where("expiresAt > ?", new Date().toISOString());
+  scope(ctx.payload, "expired", (expired) => {
+    if (!expired) {
+      criteria.push("expiresAt > ?", new Date().toISOString());
     }
   });
 
-  scope(ctx.payload, "limit", (limit) => query.limit(limit));
+  scope(ctx.payload, "id", (id) => {
+    criteria.push("id = ?", Id.parse(id));
+    limit.set(1);
+  });
 
-  scope(ctx.payload, "offset", (offset) => query.offset(offset));
+  scope(ctx.payload, "token", (token) => {
+    criteria.push("token = ?", Session.shape.token.parse(token));
+    limit.set(1);
+  });
 
-  return await ctx.database.all<z.output<Session>>(...query.toParams());
+  scope(ctx.payload, "limit", limit.set);
+  scope(ctx.payload, "offset", offset.set);
+
+  const q = new sql.Query("SELECT * FROM sessions", criteria, limit, offset);
+
+  return await ctx.database.all<z.output<Session>>(...q.toParams());
 }
 
 /**
  * Delete existing session.
  */
-export async function destroy(
-  ctx: Context<{ id: z.input<typeof Session.shape.id> }>,
-) {
+export async function discard(ctx: Context<{ id: z.input<typeof Id> }>) {
   return await ctx.database.get<z.output<Session>>(
-    "DELETE FROM sessions WHERE id = $id RETURNING *;",
-    {
-      id: Session.shape.id.parse(ctx.payload.id),
-    },
+    "DELETE FROM sessions WHERE id = ? RETURNING *;",
+    Id.parse(ctx.payload.id),
   );
 }

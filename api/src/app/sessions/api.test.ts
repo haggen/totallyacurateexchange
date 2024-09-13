@@ -4,7 +4,7 @@ import { Database } from "~/src/shared/database";
 import { now } from "~/src/shared/test";
 
 import { Time } from "~/src/shared/time";
-import { create, destroy, find, migrate } from "./api";
+import { create, discard, find, migrate } from "./api";
 
 const fixtures = {
   john: {
@@ -18,7 +18,7 @@ test("create", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const john = await api.users.create({
     database,
@@ -49,7 +49,7 @@ test("find", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const john = await api.users.create({
     database,
@@ -83,11 +83,11 @@ test("find", async () => {
   ]);
 });
 
-test("destroy", async () => {
+test("discard", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const john = await api.users.create({
     database,
@@ -109,7 +109,7 @@ test("destroy", async () => {
     session,
   ]);
 
-  await destroy({ database, payload: { id: session.id } });
+  await discard({ database, payload: { id: session.id } });
 
   expect(await find({ database, payload: { id: session.id } })).toEqual([]);
 });

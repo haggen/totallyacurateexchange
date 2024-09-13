@@ -36,7 +36,7 @@ test("create", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   expect(
     await create({
@@ -61,7 +61,7 @@ test("find", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const john = await create({
     database,
@@ -82,7 +82,7 @@ test("update", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const john = await create({
     database,

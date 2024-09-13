@@ -5,8 +5,7 @@ import { must } from "~/src/shared/must";
 import { omit } from "~/src/shared/object";
 import { AutoDateTime, Email, Id, Name } from "~/src/shared/schema";
 import { scope } from "~/src/shared/scope";
-import { getInsertValues, getUpdateSet } from "~/src/shared/sql";
-import { select } from "~/src/shared/sql/select";
+import * as sql from "~/src/shared/sql";
 import type { AtLeastOne } from "~/src/shared/types";
 
 /**
@@ -79,10 +78,12 @@ export async function create(
 
   data.password = await password.hash(data.password);
 
+  const entry = new sql.Entry(data);
+
   return must(
     await ctx.database.get<z.infer<User>>(
-      `INSERT INTO users ${getInsertValues(data)} RETURNING *;`,
-      data,
+      `INSERT INTO users ${entry} RETURNING *;`,
+      ...entry.bindings,
     ),
   );
 }
@@ -97,21 +98,26 @@ export async function find(
     | { limit?: number; offset?: number }
   >,
 ) {
-  const query = select("*").from("users");
+  const criteria = new sql.Criteria();
+  const limit = new sql.Limit();
+  const offset = new sql.Offset();
 
-  scope(ctx.payload, "id", (id) =>
-    query.where("id = ?", User.shape.id.parse(id)).limit(1),
-  );
+  scope(ctx.payload, "id", (id) => {
+    criteria.set("id = ?", Id.parse(id));
+    limit.set(1);
+  });
 
-  scope(ctx.payload, "email", (email) =>
-    query.where("email = ?", User.shape.email.parse(email)).limit(1),
-  );
+  scope(ctx.payload, "email", (email) => {
+    criteria.set("email = ?", Email.parse(email));
+    limit.set(1);
+  });
 
-  scope(ctx.payload, "limit", (limit) => query.limit(limit));
+  scope(ctx.payload, "limit", limit.set);
+  scope(ctx.payload, "offset", offset.set);
 
-  scope(ctx.payload, "offset", (offset) => query.offset(offset));
+  const q = new sql.Query("SELECT * FROM users", criteria, limit, offset);
 
-  return ctx.database.all<z.infer<User>>(...query.toParams());
+  return ctx.database.all<z.infer<User>>(...q.toParams());
 }
 
 /**
@@ -137,10 +143,11 @@ export async function update(
     data.password = await password.hash(data.password);
   }
 
+  const patch = new sql.Patch(omit(data, "id"));
+
   return await ctx.database.get(
-    `UPDATE users SET ${getUpdateSet(
-      omit(data, "id"),
-    )} WHERE id = $id RETURNING *;`,
-    data,
+    `UPDATE users SET ${patch} WHERE id = ? RETURNING *;`,
+    ...patch.bindings,
+    data.id,
   );
 }

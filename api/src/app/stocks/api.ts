@@ -3,8 +3,7 @@ import type { Context, Database } from "~/src/shared/database";
 import { must } from "~/src/shared/must";
 import { AutoDateTime, Id, Name } from "~/src/shared/schema";
 import { scope } from "~/src/shared/scope";
-import { getInsertValues } from "~/src/shared/sql";
-import { select } from "~/src/shared/sql/select";
+import * as sql from "~/src/shared/sql";
 
 /**
  * Stock schema.
@@ -89,10 +88,12 @@ export async function create(ctx: Context<Pick<z.input<Stock>, "name">>) {
     name: true,
   }).parse(ctx.payload);
 
+  const entry = new sql.Entry(data);
+
   return must(
     await ctx.database.get<z.output<Stock>>(
-      `INSERT INTO stocks ${getInsertValues(data)} RETURNING *;`,
-      data,
+      `INSERT INTO stocks ${entry} RETURNING *;`,
+      ...entry.bindings,
     ),
   );
 }
@@ -105,15 +106,19 @@ export async function find(
     { limit?: number; offset?: number } | { id: z.input<typeof Id> }
   >,
 ) {
-  const query = select("*").from("stocks");
+  const criteria = new sql.Criteria();
+  const limit = new sql.Limit();
+  const offset = new sql.Offset();
 
-  scope(ctx.payload, "id", (id) =>
-    query.where("id = ?", Id.parse(id)).limit(1),
-  );
+  scope(ctx.payload, "id", (id) => {
+    criteria.set("id = ?", Id.parse(id));
+    limit.set(1);
+  });
 
-  scope(ctx.payload, "limit", (limit) => query.limit(limit));
+  scope(ctx.payload, "limit", limit.set);
+  scope(ctx.payload, "offset", offset.set);
 
-  scope(ctx.payload, "offset", (offset) => query.offset(offset));
+  const q = new sql.Query("SELECT * FROM stocks", criteria, limit, offset);
 
-  return await ctx.database.all<z.output<Stock>>(...query.toParams());
+  return await ctx.database.all<z.output<Stock>>(...q.toParams());
 }

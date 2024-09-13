@@ -2,6 +2,7 @@ import { serve } from "bun";
 import { Hono } from "hono";
 import { api, migrate, seed } from "~/src/api";
 import { app as holdings } from "~/src/app/holdings/app";
+import { app as orders } from "~/src/app/orders/app";
 import { app as portfolios } from "~/src/app/portfolios/app";
 import { app as sessions } from "~/src/app/sessions/app";
 import { app as stocks } from "~/src/app/stocks/app";
@@ -45,6 +46,7 @@ app.route("/stocks", stocks);
 app.route("/sessions", sessions);
 app.route("/portfolios", portfolios);
 app.route("/holdings", holdings);
+app.route("/orders", orders);
 
 /**
  * Server banner.
@@ -63,4 +65,4 @@ print(
 serve({
   fetch: app.fetch,
   port: getConfig("port"),
-})
+});

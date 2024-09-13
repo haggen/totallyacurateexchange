@@ -60,7 +60,7 @@ app.delete("/:id{\\d+}", async (ctx) => {
   const database = ctx.get("database");
   const { id } = ctx.req.param();
 
-  const session = await api.sessions.destroy({
+  const session = await api.sessions.discard({
     database,
     payload: { id },
   });

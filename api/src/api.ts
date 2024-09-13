@@ -1,4 +1,5 @@
 import * as holdings from "~/src/app/holdings/api";
+import * as orders from "~/src/app/orders/api";
 import * as portfolios from "~/src/app/portfolios/api";
 import * as sessions from "~/src/app/sessions/api";
 import * as stocks from "~/src/app/stocks/api";
@@ -14,6 +15,7 @@ export const api = {
   users,
   sessions,
   holdings,
+  orders,
 };
 
 /**

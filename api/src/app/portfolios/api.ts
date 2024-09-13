@@ -2,10 +2,10 @@ import { z } from "zod";
 import { api } from "~/src/api";
 import type { Context, Database } from "~/src/shared/database";
 import { must } from "~/src/shared/must";
+import { omit } from "~/src/shared/object";
 import { AutoDateTime, Id } from "~/src/shared/schema";
 import { scope } from "~/src/shared/scope";
-import { getInsertValues } from "~/src/shared/sql";
-import { select } from "~/src/shared/sql/select";
+import * as sql from "~/src/shared/sql";
 
 /**
  * Portfolio schema.
@@ -55,10 +55,12 @@ export async function create(
     balance: true,
   }).parse(ctx.payload);
 
+  const entry = new sql.Entry(data);
+
   return must(
     await ctx.database.get<z.output<Portfolio>>(
-      `INSERT INTO portfolios ${getInsertValues(data)} RETURNING *;`,
-      data,
+      `INSERT INTO portfolios ${entry} RETURNING *;`,
+      ...entry.bindings,
     ),
   );
 }
@@ -74,19 +76,47 @@ export async function find(
     )
   >,
 ) {
-  const query = select("*").from("portfolios");
+  const criteria = new sql.Criteria();
+  const limit = new sql.Limit();
+  const offset = new sql.Offset();
 
-  scope(ctx.payload, "id", (id) =>
-    query.where("id = ?", Id.parse(id)).limit(1),
+  scope(ctx.payload, "id", (id) => {
+    criteria.set("id = ?", Id.parse(id));
+    limit.set(1);
+  });
+
+  scope(ctx.payload, "userId", (userId) => {
+    criteria.push("userId = ?", Id.parse(userId));
+  });
+
+  scope(ctx.payload, "limit", limit.set);
+  scope(ctx.payload, "offset", offset.set);
+
+  const q = new sql.Query("SELECT * FROM portfolios", criteria, limit, offset);
+
+  return await ctx.database.all<z.output<Portfolio>>(...q.toParams());
+}
+
+/**
+ * Update an existing portfolio.
+ */
+export async function update(
+  ctx: Context<
+    Pick<z.input<Portfolio>, "id"> &
+      Partial<Pick<z.input<Portfolio>, "balance">>
+  >,
+) {
+  const data = Portfolio.pick({
+    id: true,
+    updatedAt: true,
+    balance: true,
+  }).parse(ctx.payload);
+
+  const patch = new sql.Patch(omit(data, "id"));
+
+  return await ctx.database.get<z.output<Portfolio>>(
+    `UPDATE portfolios SET ${patch} WHERE id = ? RETURNING *;`,
+    ...patch.bindings,
+    data.id,
   );
-
-  scope(ctx.payload, "userId", (userId) =>
-    query.where("userId = ?", Id.parse(userId)),
-  );
-
-  scope(ctx.payload, "limit", (limit) => query.limit(limit));
-
-  scope(ctx.payload, "offset", (offset) => query.offset(offset));
-
-  return await ctx.database.all<z.output<Portfolio>>(...query.toParams());
 }

@@ -8,5 +8,6 @@ export enum Status {
   NotFound = 404,
   MethodNotAllowed = 405,
   Conflict = 409,
+  UnprocessableEntity = 422,
   InternalServerError = 500,
 }

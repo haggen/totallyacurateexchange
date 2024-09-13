@@ -3,6 +3,7 @@ import { Database } from "~/src/shared/database";
 import { now } from "~/src/shared/test";
 
 import { api } from "~/src/api";
+import { Time } from "~/src/shared/time";
 import { create, find, migrate, update } from "./api";
 
 const fixtures = {
@@ -11,13 +12,18 @@ const fixtures = {
     email: "jdoe@example.com",
     password: "0123456789abcdef",
   },
-};
+  order: {
+    type: "bid",
+    price: 100,
+    volume: 10,
+  },
+} as const;
 
 test("create", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const user = await api.users.create({ database, payload: fixtures.user });
   const portfolio = await api.portfolios.create({
@@ -39,7 +45,7 @@ test("create", async () => {
       payload: {
         portfolioId: portfolio.id,
         stockId: stock.id,
-        volume: 100,
+        ...fixtures.order,
       },
     }),
   ).toEqual({
@@ -48,7 +54,9 @@ test("create", async () => {
     updatedAt: now.toISOString(),
     portfolioId: portfolio.id,
     stockId: stock.id,
-    volume: 100,
+    status: "pending",
+    remaining: fixtures.order.volume,
+    ...fixtures.order,
   });
 });
 
@@ -56,7 +64,7 @@ test("find", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const user = await api.users.create({ database, payload: fixtures.user });
   const portfolio = await api.portfolios.create({
@@ -71,21 +79,23 @@ test("find", async () => {
       name: "Stock Co.",
     },
   });
-  const holding = await create({
+  const order = await create({
     database,
     payload: {
       portfolioId: portfolio.id,
       stockId: stock.id,
-      volume: 100,
+      ...fixtures.order,
     },
   });
 
-  expect(await find({ database, payload: { id: holding.id } })).toEqual([
-    holding,
-  ]);
+  expect(await find({ database, payload: { id: order.id } })).toEqual([order]);
 
-  expect(await find({ database, payload: { portfolioId: user.id } })).toEqual([
-    holding,
+  expect(
+    await find({ database, payload: { portfolioId: portfolio.id } }),
+  ).toEqual([order]);
+
+  expect(await find({ database, payload: { stockId: stock.id } })).toEqual([
+    order,
   ]);
 });
 
@@ -93,7 +103,7 @@ test("update", async () => {
   setSystemTime(now);
 
   const database = await Database.open(new URL("sqlite://"));
-  migrate(database);
+  await migrate(database);
 
   const user = await api.users.create({ database, payload: fixtures.user });
   const portfolio = await api.portfolios.create({
@@ -108,16 +118,31 @@ test("update", async () => {
       name: "Stock Co.",
     },
   });
-  const holding = await create({
+  const order = await create({
     database,
     payload: {
       portfolioId: portfolio.id,
       stockId: stock.id,
-      volume: 100,
+      ...fixtures.order,
     },
   });
 
+  const later = new Date(now.getTime() + Time.Day);
+  setSystemTime(later);
+
   expect(
-    await update({ database, payload: { id: holding.id, volume: 999 } }),
-  ).toHaveProperty("volume", 999);
+    await update({
+      database,
+      payload: {
+        id: order.id,
+        status: "cancelled",
+        remaining: 99,
+      },
+    }),
+  ).toEqual({
+    ...order,
+    updatedAt: later.toISOString(),
+    status: "cancelled",
+    remaining: 99,
+  });
 });

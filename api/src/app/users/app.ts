@@ -19,10 +19,19 @@ app.post("/", async (ctx) => {
     },
   });
 
-  await api.portfolios.create({
+  const portfolio = await api.portfolios.create({
     database,
     payload: {
       userId: user.id,
+    },
+  });
+
+  await api.holdings.create({
+    database,
+    payload: {
+      portfolioId: portfolio.id,
+      stockId: 1,
+      volume: 100,
     },
   });
 
