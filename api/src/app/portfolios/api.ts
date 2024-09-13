@@ -36,7 +36,7 @@ export async function migrate(database: Database) {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        balance INTEGER NOT NULL DEFAULT 0
+        balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0)
       );
     `,
   );

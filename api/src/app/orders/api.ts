@@ -43,11 +43,13 @@ export async function migrate(database: Database) {
         updatedAt TEXT NOT NULL,
         portfolioId INTEGER NOT NULL REFERENCES portfolios(id),
         stockId INTEGER NOT NULL REFERENCES stocks(id),
-        status TEXT NOT NULL,
-        type TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        volume INTEGER NOT NULL,
-        remaining INTEGER NOT NULL
+        status TEXT NOT NULL CHECK (status IN ('pending', 'completed', 'cancelled')),
+        type TEXT NOT NULL CHECK (type IN ('bid', 'ask')),
+        price INTEGER NOT NULL CHECK (price >= 0),
+        volume INTEGER NOT NULL CHECK (volume > 0),
+        remaining INTEGER NOT NULL CHECK (remaining >= 0),
+
+        CHECK (volume >= remaining)
       );
     `,
   );

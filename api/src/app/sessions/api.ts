@@ -47,7 +47,9 @@ export async function migrate(database: Database) {
         createdAt TEXT NOT NULL,
         expiresAt TEXT NOT NULL,
         userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        token TEXT NOT NULL UNIQUE
+        token TEXT NOT NULL UNIQUE,
+
+        CHECK (expiresAt > createdAt)
       );
     `,
   );

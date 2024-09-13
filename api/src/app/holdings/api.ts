@@ -37,9 +37,9 @@ export async function migrate(database: Database) {
         id INTEGER PRIMARY KEY,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
-        portfolioId INTEGER NOT NULL REFERENCES holdings(id) ON DELETE CASCADE,
+        portfolioId INTEGER NOT NULL REFERENCES portfolios(id) ON DELETE CASCADE,
         stockId INTEGER NOT NULL REFERENCES stocks(id),
-        volume INTEGER NOT NULL,
+        volume INTEGER NOT NULL CHECK (volume >= 0),
 
         UNIQUE (portfolioId, stockId)
       );

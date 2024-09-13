@@ -3,6 +3,7 @@ import * as orders from "~/src/app/orders/api";
 import * as portfolios from "~/src/app/portfolios/api";
 import * as sessions from "~/src/app/sessions/api";
 import * as stocks from "~/src/app/stocks/api";
+import * as trades from "~/src/app/trades/api";
 import * as users from "~/src/app/users/api";
 import type { Database } from "~/src/shared/database";
 
@@ -16,6 +17,7 @@ export const api = {
   sessions,
   holdings,
   orders,
+  trades,
 };
 
 /**

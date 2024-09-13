@@ -136,13 +136,13 @@ test("update", async () => {
       payload: {
         id: order.id,
         status: "cancelled",
-        remaining: 99,
+        remaining: 9,
       },
     }),
   ).toEqual({
     ...order,
     updatedAt: later.toISOString(),
     status: "cancelled",
-    remaining: 99,
+    remaining: 9,
   });
 });
