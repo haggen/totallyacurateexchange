@@ -13,11 +13,11 @@ app.post("/", async (ctx) => {
   const trades: z.infer<typeof api.trades.Trade>[] = [];
 
   const bids = await database.all<z.infer<typeof api.orders.Order>>(
-    "SELECT * FROM orders WHERE type = 'bid' AND status = 'pending' ORDER BY createdAt ASC;"
+    "SELECT * FROM orders WHERE type = 'bid' AND status = 'pending' ORDER BY createdAt ASC;",
   );
 
   const asks = await database.all<z.infer<typeof api.orders.Order>>(
-    "SELECT * FROM orders WHERE type = 'ask' AND status = 'pending' ORDER BY createdAt ASC;"
+    "SELECT * FROM orders WHERE type = 'ask' AND status = 'pending' ORDER BY createdAt ASC;",
   );
 
   if (bids.length === 0 || asks.length === 0) {
@@ -30,7 +30,7 @@ app.post("/", async (ctx) => {
         (ask) =>
           ask.status === "pending" &&
           ask.stockId === bid.stockId &&
-          ask.price <= bid.price
+          ask.price <= bid.price,
       );
 
       if (!ask) {
@@ -46,24 +46,24 @@ app.post("/", async (ctx) => {
           await database.get<z.infer<typeof api.orders.Order>>(
             "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
             ask.remaining,
-            bid.id
-          )
+            bid.id,
+          ),
         );
 
         Object.assign(
           ask,
           await database.get<z.infer<typeof api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            ask.id
-          )
+            ask.id,
+          ),
         );
       } else if (bid.remaining < ask.remaining) {
         Object.assign(
           bid,
           await database.get<z.infer<typeof api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            bid.id
-          )
+            bid.id,
+          ),
         );
 
         Object.assign(
@@ -71,31 +71,31 @@ app.post("/", async (ctx) => {
           await database.get<z.infer<typeof api.orders.Order>>(
             "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
             bid.remaining,
-            ask.id
-          )
+            ask.id,
+          ),
         );
       } else {
         Object.assign(
           bid,
           await database.get<z.infer<typeof api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            bid.id
-          )
+            bid.id,
+          ),
         );
 
         Object.assign(
           ask,
           await database.get<z.infer<typeof api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            ask.id
-          )
+            ask.id,
+          ),
         );
       }
 
       await database.run(
         "UPDATE portfolios SET balance = balance + ? WHERE id = ?;",
         price,
-        ask.portfolioId
+        ask.portfolioId,
       );
 
       trades.push(
@@ -106,7 +106,7 @@ app.post("/", async (ctx) => {
             askId: ask.id,
             volume,
           },
-        })
+        }),
       );
     }
   }

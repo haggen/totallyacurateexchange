@@ -51,7 +51,7 @@ export async function migrate(database: Database) {
 
         CHECK (expiresAt > createdAt)
       );
-    `
+    `,
   );
 }
 
@@ -59,7 +59,7 @@ export async function migrate(database: Database) {
  * Create a new session.
  */
 export async function create(
-  ctx: Context<Pick<z.input<Session>, "userId" | "expiresAt">>
+  ctx: Context<Pick<z.input<Session>, "userId" | "expiresAt">>,
 ) {
   const data = Session.pick({
     createdAt: true,
@@ -73,8 +73,8 @@ export async function create(
   return must(
     await ctx.database.get<z.output<Session>>(
       `INSERT INTO sessions ${entry} RETURNING *;`,
-      ...entry.bindings
-    )
+      ...entry.bindings,
+    ),
   );
 }
 
@@ -88,7 +88,7 @@ export async function find(
       | { token: string }
       | {}
     )
-  >
+  >,
 ) {
   ctx.payload.expired ??= false;
 
@@ -126,6 +126,6 @@ export async function find(
 export async function discard(ctx: Context<{ id: z.input<typeof Id> }>) {
   return await ctx.database.get<z.output<Session>>(
     "DELETE FROM sessions WHERE id = ? RETURNING *;",
-    Id.parse(ctx.payload.id)
+    Id.parse(ctx.payload.id),
   );
 }
