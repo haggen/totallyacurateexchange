@@ -1,23 +1,18 @@
 import { serve } from "bun";
 import { Hono } from "hono";
-import { api, migrate, seed } from "~/src/api";
+import { api } from "~/src";
 import { getConfig } from "~/src/config";
-import { app as holdings } from "~/src/holdings/app";
-import { app as orders } from "~/src/orders/app";
-import { app as portfolios } from "~/src/portfolios/app";
-import { app as sessions } from "~/src/sessions/app";
+import { migrate, seed } from "~/src/database";
 import { Database } from "~/src/shared/database";
 import { print } from "~/src/shared/log";
 import type { Env } from "~/src/shared/request";
 import {
-  getAuthentication,
   getDatabase,
   getLogger,
+  getSession,
   handleErrors,
 } from "~/src/shared/request";
-import { app as stocks } from "~/src/stocks/app";
-import { app as trades } from "~/src/trades/app";
-import { app as users } from "~/src/users/app";
+import v1 from "~/src/v1";
 
 const app = new Hono<Env>();
 
@@ -29,26 +24,18 @@ const app = new Hono<Env>();
 }
 
 app.onError(handleErrors);
+
 app.use(getLogger());
 app.use(getDatabase(getConfig("databaseUrl")));
 
 app.use(
-  getAuthentication(async (database, token) => {
+  getSession(async (database, token) => {
     const [session] = await api.sessions.find({ database, payload: { token } });
     return session;
   }),
 );
 
-/**
- * Route table.
- */
-app.route("/holdings", holdings);
-app.route("/orders", orders);
-app.route("/portfolios", portfolios);
-app.route("/sessions", sessions);
-app.route("/stocks", stocks);
-app.route("/trades", trades);
-app.route("/users", users);
+app.route("/v1", v1);
 
 /**
  * Server banner.

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { api } from "~/src/api";
+import { api } from "~/src";
 import type { Context, Database } from "~/src/shared/database";
 import { must } from "~/src/shared/must";
 import { AutoDateTime, Id } from "~/src/shared/schema";

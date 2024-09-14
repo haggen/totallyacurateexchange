@@ -1,9 +1,10 @@
 import { Hono } from "hono";
-import { api } from "~/src/api";
+import { api } from "~/src";
 import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 
-export const app = new Hono<Env>();
+const app = new Hono<Env>();
+export default app;
 
 app.get("/", async (ctx) => {
   const database = ctx.get("database");

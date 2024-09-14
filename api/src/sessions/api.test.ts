@@ -1,5 +1,5 @@
 import { expect, setSystemTime, test } from "bun:test";
-import { api } from "~/src/api";
+import { api } from "~/src";
 import { Database } from "~/src/shared/database";
 import { now } from "~/src/shared/test";
 

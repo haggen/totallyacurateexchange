@@ -87,15 +87,15 @@ export function getDatabase(databaseUrl: URL) {
 /**
  * Read and fetch session data from the request.
  */
-export function getAuthentication<T>(
+export function getSession<T>(
   fetcher: (database: Database, token: string) => Promise<T>,
 ) {
   return async (ctx: Context<Env>, next: Next) => {
     const database = ctx.get("database");
-    const header = ctx.req.header("authorization");
+    const bearer = ctx.req.header("authorization");
 
-    if (header) {
-      const token = header.slice("Bearer ".length);
+    if (bearer) {
+      const token = bearer.slice("Bearer ".length);
       const session = await fetcher(database, token);
 
       if (session) {

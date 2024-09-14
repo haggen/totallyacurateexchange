@@ -1,22 +1,23 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { z } from "zod";
-import { api } from "~/src/api";
+import { api } from "~/src";
 import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 
-export const app = new Hono<Env<z.infer<typeof api.sessions.Session>>>();
+const app = new Hono<Env<z.infer<api.sessions.Session>>>();
+export default app;
 
 app.post("/", async (ctx) => {
   const database = ctx.get("database");
 
-  const trades: z.infer<typeof api.trades.Trade>[] = [];
+  const trades: z.infer<api.trades.Trade>[] = [];
 
-  const bids = await database.all<z.infer<typeof api.orders.Order>>(
+  const bids = await database.all<z.infer<api.orders.Order>>(
     "SELECT * FROM orders WHERE type = 'bid' AND status = 'pending' ORDER BY createdAt ASC;",
   );
 
-  const asks = await database.all<z.infer<typeof api.orders.Order>>(
+  const asks = await database.all<z.infer<api.orders.Order>>(
     "SELECT * FROM orders WHERE type = 'ask' AND status = 'pending' ORDER BY createdAt ASC;",
   );
 
@@ -43,7 +44,7 @@ app.post("/", async (ctx) => {
       if (bid.remaining > ask.remaining) {
         Object.assign(
           bid,
-          await database.get<z.infer<typeof api.orders.Order>>(
+          await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
             ask.remaining,
             bid.id,
@@ -52,7 +53,7 @@ app.post("/", async (ctx) => {
 
         Object.assign(
           ask,
-          await database.get<z.infer<typeof api.orders.Order>>(
+          await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
             ask.id,
           ),
@@ -60,7 +61,7 @@ app.post("/", async (ctx) => {
       } else if (bid.remaining < ask.remaining) {
         Object.assign(
           bid,
-          await database.get<z.infer<typeof api.orders.Order>>(
+          await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
             bid.id,
           ),
@@ -68,7 +69,7 @@ app.post("/", async (ctx) => {
 
         Object.assign(
           ask,
-          await database.get<z.infer<typeof api.orders.Order>>(
+          await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
             bid.remaining,
             ask.id,
@@ -77,7 +78,7 @@ app.post("/", async (ctx) => {
       } else {
         Object.assign(
           bid,
-          await database.get<z.infer<typeof api.orders.Order>>(
+          await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
             bid.id,
           ),
@@ -85,7 +86,7 @@ app.post("/", async (ctx) => {
 
         Object.assign(
           ask,
-          await database.get<z.infer<typeof api.orders.Order>>(
+          await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
             ask.id,
           ),
