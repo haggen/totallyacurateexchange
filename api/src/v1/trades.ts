@@ -97,6 +97,20 @@ app.post("/", async (ctx) => {
       }
 
       await database.run(
+        ...new sql.Query(
+          "INSERT INTO holdings",
+          new sql.Entry(
+            api.holdings.create({
+              portfolioId: bid.portfolioId,
+              stockId: bid.stockId,
+              volume,
+            }),
+          ),
+          "ON CONFLICT (portfolioId, stockId) DO UPDATE SET volume = volume + excluded.volume;",
+        ).toParams(),
+      );
+
+      await database.run(
         "UPDATE portfolios SET balance = balance + ? WHERE id = ?;",
         price,
         ask.portfolioId,
@@ -107,11 +121,13 @@ app.post("/", async (ctx) => {
           await database.get<z.infer<api.trades.Trade>>(
             ...new sql.Query(
               "INSERT INTO trades",
-              new sql.Entry(api.trades.create({
-                bidId: bid.id,
-                askId: ask.id,
-                volume,
-              })),
+              new sql.Entry(
+                api.trades.create({
+                  bidId: bid.id,
+                  askId: ask.id,
+                  volume,
+                }),
+              ),
               "RETURNING *",
             ).toParams(),
           ),
