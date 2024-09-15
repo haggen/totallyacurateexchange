@@ -4,5 +4,5 @@ services:
     volumes:
       - storage:/app/storage
 
-volume:
+volumes:
   storage: {}
