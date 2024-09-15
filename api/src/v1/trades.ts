@@ -127,7 +127,7 @@ app.get("/", async (ctx) => {
   const database = ctx.get("database");
 
   const trades = await database.all<z.infer<api.trades.Trade>>(
-    "SELECT * FROM trades ORDER BY createdAt DESC;",
+    "SELECT * FROM trades ORDER BY executedAt DESC;",
   );
 
   return ctx.json({ data: trades }, Status.Ok);
