@@ -4,7 +4,7 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tinysync.rule=Host(`totallyacurateexchange.local.crz.li`)"
+      - "traefik.http.routers.totallyacurateexchange.rule=Host(`totallyacurateexchange.local.crz.li`)"
 
 networks:
   traefik:
