@@ -21,7 +21,7 @@ app.post("/", async (ctx) => {
   );
 
   const asks = await database.all<z.infer<api.orders.Order>>(
-    "SELECT * FROM orders WHERE type = 'ask' AND status = 'pending' ORDER BY createdAt ASC;",
+    "SELECT * FROM orders WHERE type = 'ask' AND status = 'pending' ORDER BY price ASC, createdAt ASC;",
   );
 
   if (bids.length === 0 || asks.length === 0) {
@@ -42,7 +42,9 @@ app.post("/", async (ctx) => {
       }
 
       const volume = Math.min(bid.remaining, ask.remaining);
-      const price = volume * bid.price;
+      
+      // Here we choose who we want to favor; the asker or the bidder.
+      const price = volume * ask.price;
 
       if (bid.remaining > ask.remaining) {
         Object.assign(
