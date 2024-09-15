@@ -49,7 +49,7 @@ app.post("/", async (ctx) => {
           bid,
           await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
-            ask.remaining,
+            volume,
             bid.id,
           ),
         );
@@ -74,7 +74,7 @@ app.post("/", async (ctx) => {
           ask,
           await database.get<z.infer<api.orders.Order>>(
             "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
-            bid.remaining,
+            volume,
             ask.id,
           ),
         );
