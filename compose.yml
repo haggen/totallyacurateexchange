@@ -3,3 +3,6 @@ services:
     build: ./api
     volumes:
       - storage:/app/storage
+
+volume:
+  storage: {}
