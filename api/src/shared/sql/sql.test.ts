@@ -4,6 +4,7 @@ import {
   Criteria,
   Entry,
   Group,
+  In,
   Join,
   Limit,
   Offset,
@@ -13,7 +14,7 @@ import {
   Returning,
   Selection,
   Source,
-} from ".";
+} from "./sql";
 
 describe("Patch", () => {
   const patch = new Patch({ a: 1 });
@@ -43,7 +44,7 @@ describe("Patch", () => {
 
   test("toString", () => {
     patch.push({ d: undefined });
-    expect(patch.toString()).toEqual("a = ?, b = ?, c = ? + ?");
+    expect(patch.toString()).toEqual("SET a = ?, b = ?, c = ? + ?");
   });
 
   test("bindings", () => {
@@ -73,39 +74,39 @@ describe("Entry", () => {
   });
 
   test("push", () => {
-    entry.push({ c: 3 });
-    expect(entry.data).toEqual({ a: 1, b: 2, c: 3 });
+    entry.push({ c: ["? + ?", 3, 4] });
+    expect(entry.data).toEqual({ a: 1, b: 2, c: ["? + ?", 3, 4] });
   });
 
   test("toString", () => {
     entry.push({ d: undefined });
-    expect(entry.toString()).toEqual("(a, b, c) VALUES (?, ?, ?)");
+    expect(entry.toString()).toEqual("(a, b, c) VALUES (?, ?, ? + ?)");
   });
 
   test("bindings", () => {
-    expect(entry.bindings).toEqual([1, 2, 3]);
+    expect(entry.bindings).toEqual([1, 2, 3, 4]);
   });
 });
 
-describe("Select", () => {
-  const select = new Selection("a", "b");
+describe("Selection", () => {
+  const selection = new Selection("a", "b");
 
   test("constructor/set", () => {
-    expect(select.values).toEqual(["a", "b"]);
+    expect(selection.values).toEqual(["a", "b"]);
   });
 
   test("push", () => {
-    select.push("c", "d");
-    expect(select.values).toEqual(["a", "b", "c", "d"]);
+    selection.push("c", "d");
+    expect(selection.values).toEqual(["a", "b", "c", "d"]);
   });
 
   test("merge", () => {
-    select.merge(new Selection("e", "f"));
-    expect(select.values).toEqual(["a", "b", "c", "d", "e", "f"]);
+    selection.merge(new Selection("e", "f"));
+    expect(selection.values).toEqual(["a", "b", "c", "d", "e", "f"]);
   });
 
   test("toString", () => {
-    expect(select.toString()).toEqual("a, b, c, d, e, f");
+    expect(selection.toString()).toEqual("a, b, c, d, e, f");
   });
 });
 
@@ -363,5 +364,23 @@ describe("Query", () => {
       "SELECT * FROM t WHERE f = ? LIMIT 1 OFFSET 1;",
       1,
     ]);
+  });
+});
+
+describe("In", () => {
+  test("constructor/set", () => {
+    const expr = new In("f", 1, 2, 3);
+    expect(expr.column).toEqual("f");
+    expect(expr.values).toEqual([1, 2, 3]);
+  });
+
+  test("toString", () => {
+    const expr = new In("f", 1, 2, 3);
+    expect(expr.toString()).toEqual("f IN (?, ?, ?)");
+  });
+
+  test("bindings", () => {
+    const expr = new In("f", 1, 2, 3);
+    expect(expr.bindings).toEqual([1, 2, 3]);
   });
 });

@@ -1,9 +1,12 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { z } from "zod";
-import { api } from "~/src";
+import type { api } from "~/src/api";
+import { must } from "~/src/shared/must";
 import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
+import { Id } from "~/src/shared/schema";
+import { sql } from "~/src/shared/sql";
 
 const app = new Hono<Env<z.infer<api.sessions.Session>>>();
 export default app;
@@ -100,14 +103,19 @@ app.post("/", async (ctx) => {
       );
 
       trades.push(
-        await api.trades.create({
-          database,
-          payload: {
-            bidId: bid.id,
-            askId: ask.id,
-            volume,
-          },
-        }),
+        must(
+          await database.get<z.infer<api.trades.Trade>>(
+            ...new sql.Query(
+              "INSERT INTO trades",
+              new sql.Entry({
+                bidId: bid.id,
+                askId: ask.id,
+                volume,
+              }),
+              "RETURNING *",
+            ).toParams(),
+          ),
+        ),
       );
     }
   }
@@ -118,22 +126,24 @@ app.post("/", async (ctx) => {
 app.get("/", async (ctx) => {
   const database = ctx.get("database");
 
-  const trades = await api.trades.find({
-    database,
-    payload: {},
-  });
+  const trades = await database.all<z.infer<api.trades.Trade>>(
+    "SELECT * FROM trades ORDER BY createdAt DESC;",
+  );
 
   return ctx.json({ data: trades }, Status.Ok);
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
   const database = ctx.get("database");
-  const { id } = ctx.req.param();
+  const id = Id.parse(ctx.req.param("id"));
 
-  const [trade] = await api.orders.find({
-    database,
-    payload: { id },
-  });
+  const criteria = new sql.Criteria();
+
+  criteria.push("id = ?", id);
+
+  const trade = await database.get<z.infer<api.trades.Trade>>(
+    ...new sql.Query("SELECT * FROM trades", criteria, "LIMIT 1").toParams(),
+  );
 
   if (!trade) {
     throw new HTTPException(Status.NotFound);

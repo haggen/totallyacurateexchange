@@ -1,4 +1,4 @@
-import { api } from "~/src";
+import { api } from "~/src/api";
 import type { Database } from "~/src/shared/database";
 
 /**

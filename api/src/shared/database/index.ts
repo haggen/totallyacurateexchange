@@ -4,20 +4,7 @@ import { print } from "~/src/shared/log";
 /**
  * Type of database binding value.
  */
-export type Value = string | number | boolean | null;
-
-/**
- * Type of database bindings.
- */
-export type Bindings = Value | Record<string, Value>;
-
-/**
- * Context of a database operation.
- */
-export type Context<P extends Record<string, unknown> = never> = {
-  database: Database;
-  payload: P;
-};
+export type Binding = string | number | boolean | null;
 
 /**
  * Database instance wrap.
@@ -52,7 +39,7 @@ export class Database {
       strict: true,
     });
 
-    // Enabling SQLite's write-ahead improves concurrent writes performance.
+    // Enabling SQLite's write-ahead improves performance of concurrent writes.
     this.instance.exec("PRAGMA journal_mode = WAL;");
   }
 
@@ -75,39 +62,54 @@ export class Database {
   /**
    * Prepare statement and run it, with no returning value.
    */
-  async run(sql: string, ...bindings: Bindings[]) {
+  async run(sql: string, ...bindings: Binding[]) {
     if (!this.instance) {
       throw new Error("Database is closed");
     }
     if (this.verbose) {
       print("log", "database.run", sql, bindings);
     }
-    this.instance.query<never, Bindings[]>(sql).run(...bindings);
+    this.instance.query<never, Binding[]>(sql).run(...bindings);
   }
 
   /**
    * Prepare statement and return at most a single record.
    */
-  async get<T>(sql: string, ...bindings: Bindings[]) {
+  async get<T>(sql: string, ...bindings: Binding[]) {
     if (!this.instance) {
       throw new Error("Database is closed");
     }
     if (this.verbose) {
       print("log", "database.get", sql, bindings);
     }
-    return this.instance.query<T, Bindings[]>(sql).get(...bindings);
+    return this.instance.query<T, Binding[]>(sql).get(...bindings);
   }
 
   /**
    * Prepare statement and return all records.
    */
-  async all<T>(sql: string, ...bindings: Bindings[]) {
+  async all<T>(sql: string, ...bindings: Binding[]) {
     if (!this.instance) {
       throw new Error("Database is closed");
     }
     if (this.verbose) {
       print("log", "database.all", sql, bindings);
     }
-    return this.instance.query<T, Bindings[]>(sql).all(...bindings);
+    return this.instance.query<T, Binding[]>(sql).all(...bindings);
+  }
+
+  async transaction(tx: () => Promise<void>) {
+    if (!this.instance) {
+      throw new Error("Database is closed");
+    }
+
+    try {
+      await this.run("BEGIN;");
+      await tx();
+      await this.run("COMMIT;");
+    } catch (err) {
+      await this.run("ROLLBACK;");
+      throw err;
+    }
   }
 }

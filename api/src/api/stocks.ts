@@ -1,8 +1,7 @@
 import { z } from "zod";
-import type { Context, Database } from "~/src/shared/database";
+import type { Database } from "~/src/shared/database";
 import { must } from "~/src/shared/must";
 import { AutoDateTime, Id, Name } from "~/src/shared/schema";
-import { scope } from "~/src/shared/scope";
 import * as sql from "~/src/shared/sql";
 
 /**
@@ -50,7 +49,7 @@ export async function seed(database: Database) {
     return;
   }
 
-  const data = [
+  const stocks = [
     { name: "WaffleTech Inc." },
     { name: "QuirkCo Ventures" },
     { name: "FizzBizz Ltd." },
@@ -73,52 +72,19 @@ export async function seed(database: Database) {
     { name: "PogoPigeon Industries" },
   ];
 
-  for (const payload of data) {
-    await create({ database, payload });
+  for await (const data of stocks) {
+    const entry = new sql.Entry(create(data));
+    await database.run(`INSERT INTO stocks ${entry};`, ...entry.bindings);
   }
 }
 
 /**
  * Create a new stock.
  */
-export async function create(ctx: Context<Pick<z.input<Stock>, "name">>) {
-  const data = Stock.pick({
+export function create(data: Pick<z.input<Stock>, "name">) {
+  return Stock.pick({
     createdAt: true,
     updatedAt: true,
     name: true,
-  }).parse(ctx.payload);
-
-  const entry = new sql.Entry(data);
-
-  return must(
-    await ctx.database.get<z.output<Stock>>(
-      `INSERT INTO stocks ${entry} RETURNING *;`,
-      ...entry.bindings,
-    ),
-  );
-}
-
-/**
- * Find existing stocks.
- */
-export async function find(
-  ctx: Context<
-    { limit?: number; offset?: number } | { id: z.input<typeof Id> }
-  >,
-) {
-  const criteria = new sql.Criteria();
-  const limit = new sql.Limit();
-  const offset = new sql.Offset();
-
-  scope(ctx.payload, "id", (id) => {
-    criteria.set("id = ?", Id.parse(id));
-    limit.set(1);
-  });
-
-  scope(ctx.payload, "limit", limit.set);
-  scope(ctx.payload, "offset", offset.set);
-
-  const q = new sql.Query("SELECT * FROM stocks", criteria, limit, offset);
-
-  return await ctx.database.all<z.output<Stock>>(...q.toParams());
+  }).parse(data);
 }

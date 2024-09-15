@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 
-import holdings from "~/src/holdings/app";
-import orders from "~/src/orders/app";
-import portfolios from "~/src/portfolios/app";
-import sessions from "~/src/sessions/app";
-import stocks from "~/src/stocks/app";
-import trades from "~/src/trades/app";
-import users from "~/src/users/app";
+import holdings from "./holdings";
+import orders from "./orders";
+import portfolios from "./portfolios";
+import sessions from "./sessions";
+import stocks from "./stocks";
+import trades from "./trades";
+import users from "./users";
 
 const app = new Hono();
 export default app;

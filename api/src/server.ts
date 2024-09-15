@@ -1,16 +1,16 @@
 import { serve } from "bun";
 import { Hono } from "hono";
-import { api } from "~/src";
+import { api } from "~/src/api";
 import { getConfig } from "~/src/config";
 import { migrate, seed } from "~/src/database";
 import { Database } from "~/src/shared/database";
 import { print } from "~/src/shared/log";
 import type { Env } from "~/src/shared/request";
 import {
-  getDatabase,
-  getLogger,
-  getSession,
   handleErrors,
+  logger,
+  setRequestDatabase,
+  setRequestSession,
 } from "~/src/shared/request";
 import v1 from "~/src/v1";
 
@@ -25,15 +25,9 @@ const app = new Hono<Env>();
 
 app.onError(handleErrors);
 
-app.use(getLogger());
-app.use(getDatabase(getConfig("databaseUrl")));
-
-app.use(
-  getSession(async (database, token) => {
-    const [session] = await api.sessions.find({ database, payload: { token } });
-    return session;
-  }),
-);
+app.use(logger);
+app.use(setRequestDatabase(() => Database.open(getConfig("databaseUrl"))));
+app.use(setRequestSession(api.sessions.findNotExpiredByToken));
 
 app.route("/v1", v1);
 

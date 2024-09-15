@@ -2,7 +2,7 @@ import { SQLiteError } from "bun:sqlite";
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
-import { Database } from "~/src/shared/database";
+import type { Database } from "~/src/shared/database";
 import { UnauthorizedError } from "~/src/shared/error";
 import { print } from "~/src/shared/log";
 import { Status } from "~/src/shared/response";
@@ -39,37 +39,37 @@ export function handleErrors(err: Error, ctx: Context) {
     return ctx.json({ error: err }, Status.Conflict);
   }
 
+  print("error", "Unexpected error", err);
+
   return ctx.json(undefined, Status.InternalServerError);
 }
 
 /**
  * Log requests.
  */
-export function getLogger() {
-  return async (ctx: Context, next: Next) => {
-    performance.mark("request");
+export async function logger(ctx: Context, next: Next) {
+  performance.mark("request");
 
-    await next();
+  await next();
 
-    const { duration } = performance.measure("request", "request");
+  const { duration } = performance.measure("request", "request");
 
-    print(
-      "log",
-      "request",
-      ctx.req.method,
-      new URL(ctx.req.url).pathname,
-      ctx.res.status,
-      `${duration.toFixed(2)}ms`,
-    );
-  };
+  print(
+    "log",
+    "request",
+    ctx.req.method,
+    new URL(ctx.req.url).pathname,
+    ctx.res.status,
+    `${duration.toFixed(2)}ms`,
+  );
 }
 
 /**
  * Open a database connection for each request.
  */
-export function getDatabase(databaseUrl: URL) {
+export function setRequestDatabase(open: () => Promise<Database>) {
   return async (ctx: Context<Env>, next: Next) => {
-    await using database = await Database.open(databaseUrl);
+    await using database = await open();
     database.verbose = true;
     ctx.set("database", database);
 
@@ -87,7 +87,7 @@ export function getDatabase(databaseUrl: URL) {
 /**
  * Read and fetch session data from the request.
  */
-export function getSession<T>(
+export function setRequestSession<T>(
   fetcher: (database: Database, token: string) => Promise<T>,
 ) {
   return async (ctx: Context<Env>, next: Next) => {
