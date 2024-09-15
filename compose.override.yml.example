@@ -1,0 +1,11 @@
+services:
+  api:
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tinysync.rule=Host(`totallyacurateexchange.local.crz.li`)"
+
+networks:
+  traefik:
+    external: true
