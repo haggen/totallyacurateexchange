@@ -11,7 +11,7 @@ export const Portfolio = z.object({
   createdAt: AutoDateTime,
   updatedAt: AutoDateTime,
   userId: Id,
-  balance: z.number().default(10_000),
+  balance: z.number().default(100_000),
 });
 
 /**
