@@ -4,7 +4,9 @@
 const config = {
   env: process.env.NODE_ENV || "development",
   port: Number.parseInt(process.env.PORT || "3000"),
-  databaseUrl: new URL(process.env.DATABASE_URL || "sqlite:///storage/database.sqlite"),
+  databaseUrl: new URL(
+    process.env.DATABASE_URL || "sqlite:///storage/database.sqlite",
+  ),
 };
 
 /**
