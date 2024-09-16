@@ -518,7 +518,7 @@ export function q(
       const expr = interpolation.toExpr();
       literal += expr[0];
       bindings.push(...expr.slice(1));
-    } else if (interpolation) {
+    } else if (interpolation !== undefined) {
       literal += "?";
       bindings.push(interpolation);
     }

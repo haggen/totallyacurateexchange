@@ -378,6 +378,10 @@ describe("List", () => {
   test("toExpr/toString/bindings", () => {
     expect(expr.toExpr()).toEqual(["(?, ?, ?, ?, ?)", 1, 2, 3, 4, 5]);
   });
+
+  test("zero length", () => {
+    expect(new List([]).toExpr()).toEqual(["()"]);
+  });
 });
 
 test("q", () => {
@@ -390,4 +394,8 @@ test("q", () => {
   expect(
     q`UPDATE t ${new Patch({ a: 1, b: 2 })} ${new Criteria("c = ?", 3)};`,
   ).toEqual(["UPDATE t SET a = ?, b = ? WHERE c = ?;", 1, 2, 3]);
+
+  expect(
+    q`INSERT INTO t WHERE f = ${false} OR f = ${0} OR f = ${null};`,
+  ).toEqual(["INSERT INTO t WHERE f = ? OR f = ? OR f = ?;", false, 0, null]);
 });
