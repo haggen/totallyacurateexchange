@@ -75,3 +75,25 @@ export async function create(
 
   return user;
 }
+
+/**
+ * Create a patch.
+ */
+export async function patch(
+  data: Partial<Pick<z.input<User>, "name" | "email" | "password">>,
+) {
+  const user = z
+    .object({
+      updatedAt: User.shape.updatedAt,
+      name: User.shape.name.optional(),
+      email: User.shape.name.optional(),
+      password: User.shape.name.optional(),
+    })
+    .parse(data);
+
+  if (user.password) {
+    user.password = await password.hash(user.password);
+  }
+
+  return user;
+}

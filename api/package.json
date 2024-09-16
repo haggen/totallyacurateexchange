@@ -9,12 +9,12 @@
     "check": "biome check && tsc --noEmit"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.8.3",
-    "@types/bun": "^1.1.8",
-    "typescript": "^5.5.4"
+    "@biomejs/biome": "^1.9.1",
+    "@types/bun": "^1.1.9",
+    "typescript": "^5.6.2"
   },
   "dependencies": {
-    "hono": "^4.5.11",
+    "hono": "^4.6.1",
     "zod": "^3.23.8"
   }
 }

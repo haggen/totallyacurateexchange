@@ -19,7 +19,7 @@ app.get("/", async (ctx) => {
       "SELECT * FROM stocks",
       criteria,
       "ORDER BY name ASC",
-    ).toParams(),
+    ).toExpr(),
   );
 
   return ctx.json({ data: stocks }, Status.Ok);
@@ -38,7 +38,7 @@ app.get("/:id{\\d+}", async (ctx) => {
       "SELECT * FROM stocks",
       criteria,
       "ORDER BY name ASC",
-    ).toParams(),
+    ).toExpr(),
   );
 
   if (!stock) {

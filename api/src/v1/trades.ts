@@ -17,7 +17,7 @@ app.post("/", async (ctx) => {
   const trades: z.infer<api.trades.Trade>[] = [];
 
   const bids = await database.all<z.infer<api.orders.Order>>(
-    "SELECT * FROM orders WHERE type = 'bid' AND status = 'pending' ORDER BY createdAt ASC;",
+    "SELECT * FROM orders WHERE type = 'bid' AND status = 'pending' ORDER BY price DESC, createdAt ASC;",
   );
 
   const asks = await database.all<z.infer<api.orders.Order>>(
@@ -42,96 +42,145 @@ app.post("/", async (ctx) => {
       }
 
       const volume = Math.min(bid.remaining, ask.remaining);
-      
+
       // Here we choose who we want to favor; the asker or the bidder.
       const price = volume * ask.price;
 
       if (bid.remaining > ask.remaining) {
+        // If we're buying more than the volume being sold, we need to:
+        // 1. Complete the ask order.
+        // 2. Update remaining volume of the bid order.
         Object.assign(
           bid,
           await database.get<z.infer<api.orders.Order>>(
-            "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
-            volume,
-            bid.id,
+            ...sql.q`UPDATE orders ${new sql.Patch(
+              api.orders.patch({
+                remaining: bid.remaining - volume,
+              }),
+            )} WHERE id = ${bid.id} RETURNING *;`,
           ),
         );
 
         Object.assign(
           ask,
           await database.get<z.infer<api.orders.Order>>(
-            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            ask.id,
+            ...sql.q`UPDATE orders ${new sql.Patch(
+              api.orders.patch({
+                remaining: 0,
+              }),
+            )} WHERE id = ${ask.id} RETURNING *;`,
           ),
         );
       } else if (bid.remaining < ask.remaining) {
+        // If we're buying less than the volume being sold, we need to:
+        // 1. Complete the bid order.
+        // 2. Update remaining volume of the ask order.
         Object.assign(
           bid,
           await database.get<z.infer<api.orders.Order>>(
-            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            bid.id,
+            ...sql.q`UPDATE orders ${new sql.Patch(
+              api.orders.patch({
+                remaining: 0,
+              }),
+            )} WHERE id = ${bid.id} RETURNING *;`,
           ),
         );
 
         Object.assign(
           ask,
           await database.get<z.infer<api.orders.Order>>(
-            "UPDATE orders SET remaining = remaining - ? WHERE id = ? RETURNING *;",
-            volume,
-            ask.id,
+            ...sql.q`UPDATE orders ${new sql.Patch(
+              api.orders.patch({
+                remaining: ask.remaining - volume,
+              }),
+            )} WHERE id = ${ask.id} RETURNING *;`,
           ),
         );
       } else {
+        // If we're buying the exact volume being sold, we need to complete both orders.
         Object.assign(
           bid,
           await database.get<z.infer<api.orders.Order>>(
-            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            bid.id,
+            ...sql.q`UPDATE orders ${new sql.Patch(
+              api.orders.patch({
+                remaining: 0,
+              }),
+            )} WHERE id = ${bid.id} RETURNING *;`,
           ),
         );
 
         Object.assign(
           ask,
           await database.get<z.infer<api.orders.Order>>(
-            "UPDATE orders SET status = 'completed', remaining = 0 WHERE id = ? RETURNING *;",
-            ask.id,
+            ...sql.q`UPDATE orders ${new sql.Patch(
+              api.orders.patch({
+                remaining: 0,
+              }),
+            )} WHERE id = ${ask.id} RETURNING *;`,
           ),
         );
       }
 
-      await database.run(
-        ...new sql.Query(
-          "INSERT INTO holdings",
-          new sql.Entry(
-            api.holdings.create({
-              portfolioId: bid.portfolioId,
-              stockId: bid.stockId,
-              volume,
-            }),
-          ),
-          "ON CONFLICT (portfolioId, stockId) DO UPDATE SET volume = volume + excluded.volume;",
-        ).toParams(),
+      const holding = await database.get<
+        Pick<z.infer<api.holdings.Holding>, "id" | "volume">
+      >(
+        ...sql.q`SELECT id, volume FROM holdings WHERE portfolioId = ${bid.portfolioId} AND stockId = ${bid.stockId} LIMIT 1;`,
       );
 
-      await database.run(
-        "UPDATE portfolios SET balance = balance + ? WHERE id = ?;",
-        price,
-        ask.portfolioId,
+      // Update the holdings of the buyer.
+      if (holding) {
+        await database.run(
+          ...new sql.Query(
+            "UPDATE holdings",
+            new sql.Patch(
+              api.holdings.patch({
+                volume: holding.volume + volume,
+              }),
+            ),
+            new sql.Criteria("id = ?", holding.id),
+          ).toExpr(),
+        );
+      } else {
+        await database.run(
+          ...new sql.Query(
+            "INSERT INTO holdings",
+            new sql.Entry(
+              api.holdings.create({
+                portfolioId: bid.portfolioId,
+                stockId: bid.stockId,
+                volume,
+              }),
+            ),
+          ).toExpr(),
+        );
+      }
+
+      const portfolio = must(
+        await database.get<z.infer<api.portfolios.Portfolio>>(
+          ...sql.q`SELECT id, balance FROM portfolios WHERE id = ${ask.portfolioId} LIMIT 1;`,
+        ),
       );
 
+      // Update the balance of the seller.
+      await database.run(
+        ...sql.q`UPDATE portfolios ${new sql.Patch(
+          api.portfolios.patch({
+            balance: portfolio.balance + price,
+          }),
+        )} WHERE id = ${portfolio.id};`,
+      );
+
+      // Record the trade.
       trades.push(
         must(
           await database.get<z.infer<api.trades.Trade>>(
-            ...new sql.Query(
-              "INSERT INTO trades",
-              new sql.Entry(
-                api.trades.create({
-                  bidId: bid.id,
-                  askId: ask.id,
-                  volume,
-                }),
-              ),
-              "RETURNING *",
-            ).toParams(),
+            ...sql.q`INSERT INTO trades ${new sql.Entry(
+              api.trades.create({
+                bidId: bid.id,
+                askId: ask.id,
+                volume,
+              }),
+            )} RETURNING *;`,
           ),
         ),
       );
@@ -148,7 +197,28 @@ app.get("/", async (ctx) => {
     "SELECT * FROM trades ORDER BY executedAt DESC;",
   );
 
-  return ctx.json({ data: trades }, Status.Ok);
+  const asks = await database.all<z.infer<api.orders.Order>>(
+    ...sql.q`SELECT * FROM orders WHERE id IN ${new sql.List(
+      trades.map(({ askId }) => askId),
+    )} LIMIT ${trades.length};`,
+  );
+
+  const bids = await database.all<z.infer<api.orders.Order>>(
+    ...sql.q`SELECT * FROM orders WHERE id IN ${new sql.List(
+      trades.map(({ bidId }) => bidId),
+    )} LIMIT ${trades.length};`,
+  );
+
+  return ctx.json(
+    {
+      data: trades.map((trade) => ({
+        ...trade,
+        ask: asks.find(({ id }) => id === trade.askId),
+        bid: bids.find(({ id }) => id === trade.bidId),
+      })),
+    },
+    Status.Ok,
+  );
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
@@ -156,16 +226,27 @@ app.get("/:id{\\d+}", async (ctx) => {
   const id = Id.parse(ctx.req.param("id"));
 
   const criteria = new sql.Criteria();
-
   criteria.push("id = ?", id);
 
   const trade = await database.get<z.infer<api.trades.Trade>>(
-    ...new sql.Query("SELECT * FROM trades", criteria, "LIMIT 1").toParams(),
+    ...sql.q`SELECT * FROM trades ${criteria} LIMIT 1;`,
   );
 
   if (!trade) {
     throw new HTTPException(Status.NotFound);
   }
 
-  return ctx.json({ data: trade });
+  const ask = must(
+    await database.get<z.infer<api.orders.Order>>(
+      ...sql.q`SELECT * FROM orders WHERE id = ${trade.askId} LIMIT 1;`,
+    ),
+  );
+
+  const bid = must(
+    await database.get<z.infer<api.orders.Order>>(
+      ...sql.q`SELECT * FROM orders WHERE id = ${trade.bidId} LIMIT 1;`,
+    ),
+  );
+
+  return ctx.json({ data: { ...trade, ask, bid } });
 });

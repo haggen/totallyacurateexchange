@@ -49,3 +49,13 @@ export function create(data: Pick<z.input<Portfolio>, "userId" | "balance">) {
     balance: true,
   }).parse(data);
 }
+
+/**
+ * Create a patch.
+ */
+export function patch(data: Partial<Pick<z.input<Portfolio>, "balance">>) {
+  return Portfolio.pick({
+    updatedAt: true,
+    balance: true,
+  }).parse(data);
+}

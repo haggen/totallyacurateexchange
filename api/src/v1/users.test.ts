@@ -1,46 +1,39 @@
 import { describe, expect, setSystemTime, test } from "bun:test";
-import { Hono } from "hono";
 import type { z } from "zod";
 import { api } from "~/src/api";
-import { migrate } from "~/src/database";
-import { Database } from "~/src/shared/database";
 import { must } from "~/src/shared/must";
-import {
-  type Env,
-  setRequestDatabase,
-  setRequestSession,
-} from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 import { sql } from "~/src/shared/sql";
-import { now } from "~/src/shared/test";
+import { now, prepare } from "~/src/test";
 
 import endpoints from "./users";
 
-const fixtures = {
-  john: {
+const examples = {
+  user: {
     name: "John Doe",
     email: "jdoe@example.com",
     password: "0123456789abcdef",
   },
+  portfolio: {
+    userId: 1,
+  },
+  session: {
+    userId: 1,
+  },
 };
 
 describe("POST /", async () => {
-  const database = await Database.open(new URL("sqlite://"));
+  setSystemTime(now);
 
-  await migrate(database);
-
-  const app = new Hono<Env>();
-
-  app.use(setRequestDatabase(() => Promise.resolve(database)));
-
+  const { app, database } = await prepare();
   app.route("/", endpoints);
 
   const response = await app.request("/", {
     method: "POST",
     body: JSON.stringify({
-      name: fixtures.john.name,
-      email: fixtures.john.email,
-      password: fixtures.john.password,
+      name: examples.user.name,
+      email: examples.user.email,
+      password: examples.user.password,
     }),
     headers: {
       "Content-Type": "application/json",
@@ -53,9 +46,16 @@ describe("POST /", async () => {
       id: 1,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
-      name: fixtures.john.name,
-      email: fixtures.john.email,
+      name: examples.user.name,
+      email: examples.user.email,
       password: expect.any(String),
+      portfolio: {
+        id: 1,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        userId: 1,
+        balance: expect.any(Number),
+      },
     },
   });
 });
@@ -63,35 +63,24 @@ describe("POST /", async () => {
 describe("GET /id", async () => {
   setSystemTime(now);
 
-  const database = await Database.open(new URL("sqlite://"));
-  database.close = () => Promise.resolve();
-
-  await migrate(database);
-
-  const app = new Hono<Env>();
-
-  app.use(setRequestDatabase(() => Promise.resolve(database)));
-  app.use(setRequestSession(api.sessions.findNotExpiredByToken));
-
+  const { app, database } = await prepare();
   app.route("/", endpoints);
 
   const user = must(
     await database.get<z.infer<api.users.User>>(
-      ...new sql.Query(
-        "INSERT INTO users",
-        new sql.Entry(await api.users.create(fixtures.john)),
-        "RETURNING *",
-      ).toParams(),
+      ...sql.q`INSERT INTO users ${new sql.Entry(await api.users.create(examples.user))} RETURNING *;`,
+    ),
+  );
+
+  const portfolio = must(
+    await database.get<z.infer<api.portfolios.Portfolio>>(
+      ...sql.q`INSERT INTO portfolios ${new sql.Entry(api.portfolios.create(examples.portfolio))} RETURNING *;`,
     ),
   );
 
   const session = must(
     await database.get<z.infer<api.sessions.Session>>(
-      ...new sql.Query(
-        "INSERT INTO sessions",
-        new sql.Entry(api.sessions.create({ userId: user.id })),
-        "RETURNING *",
-      ).toParams(),
+      ...sql.q`INSERT INTO sessions ${new sql.Entry(api.sessions.create(examples.session))} RETURNING *;`,
     ),
   );
 
@@ -119,6 +108,6 @@ describe("GET /id", async () => {
     });
 
     expect(response.status).toBe(Status.Ok);
-    expect(await response.json()).toEqual({ data: user });
+    expect(await response.json()).toEqual({ data: { ...user, portfolio } });
   });
 });

@@ -14,14 +14,14 @@ import {
 } from "~/src/shared/request";
 import v1 from "~/src/v1";
 
-const app = new Hono<Env>();
-
 {
   await using database = await Database.open(getConfig("databaseUrl"));
-  database.verbose = true;
+
   await migrate(database);
   await seed(database);
 }
+
+const app = new Hono<Env>();
 
 app.onError(handleErrors);
 
@@ -31,9 +31,6 @@ app.use(setRequestSession(api.sessions.findNotExpiredByToken));
 
 app.route("/v1", v1);
 
-/**
- * Server banner.
- */
 print(
   "log",
   "server",
@@ -42,9 +39,6 @@ print(
   getConfig("port"),
 );
 
-/**
- * Listen.
- */
 serve({
   fetch: app.fetch,
   port: getConfig("port"),

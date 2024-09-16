@@ -18,26 +18,34 @@ app.get("/", async (ctx) => {
     throw new HTTPException(Status.Unauthorized);
   }
 
-  const portfolios = await database.all<z.infer<api.portfolios.Portfolio>>(
-    "SELECT * FROM portfolios WHERE userId = ?;",
-    session.userId,
+  const portfolio = await database.get<z.infer<api.portfolios.Portfolio>>(
+    ...sql.q`SELECT id FROM portfolios WHERE userId = ${session.userId} LIMIT 1;`,
   );
 
-  if (portfolios.length === 0) {
+  if (!portfolio) {
     throw new HTTPException(Status.NotFound);
   }
 
   const criteria = new sql.Criteria();
-
-  criteria.push(
-    ...new sql.In("portfolioId", ...portfolios.map(({ id }) => id)).toParams(),
-  );
+  criteria.push("portfolioId = ?", portfolio.id);
 
   const holdings = await database.all<z.infer<api.holdings.Holding>>(
-    ...new sql.Query("SELECT * FROM holdings", criteria).toParams(),
+    ...sql.q`SELECT * FROM holdings ${criteria};`,
   );
 
-  return ctx.json({ data: holdings }, Status.Ok);
+  const stocks = await database.all<z.infer<api.stocks.Stock>>(
+    ...sql.q`SELECT * FROM stocks WHERE id IN (${new sql.List(holdings.map((holding) => holding.stockId))}) LIMIT ${holdings.length};`,
+  );
+
+  return ctx.json(
+    {
+      data: holdings.map((holdings) => ({
+        ...holdings,
+        stock: stocks.find((stock) => stock.id === holdings.stockId),
+      })),
+    },
+    Status.Ok,
+  );
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
@@ -49,29 +57,22 @@ app.get("/:id{\\d+}", async (ctx) => {
     throw new HTTPException(Status.Unauthorized);
   }
 
-  const portfolios = await database.all<z.infer<api.portfolios.Portfolio>>(
-    "SELECT * FROM portfolios WHERE userId = ? LIMIT 1;",
-    session.userId,
-  );
-
-  if (portfolios.length === 0) {
-    throw new HTTPException(Status.NotFound);
-  }
-
   const criteria = new sql.Criteria();
 
-  criteria.push("id = ?", id);
-  criteria.push(
-    ...new sql.In("portfolioId", ...portfolios.map(({ id }) => id)).toParams(),
-  );
+  criteria.push("holdings.id = ?", id);
+  criteria.push("portfolios.userId = ?", session.userId);
 
   const holding = await database.get<z.infer<api.holdings.Holding>>(
-    ...new sql.Query("SELECT * FROM holdings", criteria, "LIMIT 1").toParams(),
+    ...sql.q`SELECT holdings.* FROM holdings JOIN portfolios ON portfolios.id = holdings.portfolioId ${criteria} LIMIT 1;`,
   );
 
   if (!holding) {
     throw new HTTPException(Status.NotFound);
   }
 
-  return ctx.json({ data: holding });
+  const stock = await database.get<z.infer<api.stocks.Stock>>(
+    ...sql.q`SELECT * FROM stocks WHERE id = ${holding.stockId} LIMIT 1;`,
+  );
+
+  return ctx.json({ data: { ...holding, stock } });
 });

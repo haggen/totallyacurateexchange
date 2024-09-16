@@ -61,7 +61,7 @@ app.post("/", async (ctx) => {
           volume: holding.volume - data.volume,
         }),
         new sql.Criteria("id = ?", holding.id),
-      ).toParams(),
+      ).toExpr(),
     );
   } else if (data.type === "bid") {
     const cost = data.price * data.volume;
@@ -77,7 +77,7 @@ app.post("/", async (ctx) => {
           balance: portfolio.balance - cost,
         }),
         new sql.Criteria("id = ?", portfolio.id),
-      ).toParams(),
+      ).toExpr(),
     );
   }
 
@@ -103,7 +103,7 @@ app.get("/", async (ctx) => {
       "SELECT * FROM orders",
       criteria,
       "ORDER BY createdAt DESC",
-    ).toParams(),
+    ).toExpr(),
   );
 
   return ctx.json({ data: orders }, Status.Ok);
@@ -118,7 +118,7 @@ app.get("/:id{\\d+}", async (ctx) => {
   criteria.push("id = ?", id);
 
   const order = await database.get<z.infer<api.orders.Order>>(
-    ...new sql.Query("SELECT * FROM orders", criteria, "LIMIT 1").toParams(),
+    ...new sql.Query("SELECT * FROM orders", criteria, "LIMIT 1").toExpr(),
   );
 
   if (!order) {

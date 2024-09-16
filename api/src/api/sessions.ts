@@ -2,6 +2,7 @@ import { z } from "zod";
 import { api } from "~/src/api";
 import type { Database } from "~/src/shared/database";
 import { AutoDateTime, Id } from "~/src/shared/schema";
+import { sql } from "~/src/shared/sql";
 import { Time } from "~/src/shared/time";
 
 /**
@@ -66,8 +67,6 @@ export function create(data: { userId: z.input<typeof Id> }) {
 
 export async function findNotExpiredByToken(database: Database, token: string) {
   return await database.get<z.infer<Session>>(
-    "SELECT * FROM sessions WHERE token = ? AND expiresAt > ?",
-    token,
-    new Date().toISOString(),
+    ...sql.q`SELECT * FROM sessions WHERE token = ${token} AND expiresAt > ${new Date().toISOString()} LIMIT 1;`,
   );
 }

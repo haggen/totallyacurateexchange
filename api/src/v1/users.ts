@@ -17,32 +17,25 @@ app.post("/", async (ctx) => {
 
   const user = must(
     await database.get<z.infer<api.users.User>>(
-      ...new sql.Query(
-        "INSERT INTO users",
-        new sql.Entry(
-          await api.users.create({
-            name: payload.name,
-            email: payload.email,
-            password: payload.password,
-          }),
-        ),
-        "RETURNING *",
-      ).toParams(),
+      ...sql.q`INSERT INTO users ${new sql.Entry(
+        await api.users.create({
+          name: payload.name,
+          email: payload.email,
+          password: payload.password,
+        }),
+      )} RETURNING *;`,
     ),
   );
 
-  await database.run(
-    ...new sql.Query(
-      "INSERT INTO portfolios",
-      new sql.Entry(
-        api.portfolios.create({
-          userId: user.id,
-        }),
-      ),
-    ).toParams(),
+  const portfolio = await database.get<z.infer<api.portfolios.Portfolio>>(
+    ...sql.q`INSERT INTO portfolios ${new sql.Entry(
+      api.portfolios.create({
+        userId: user.id,
+      }),
+    )} RETURNING *;`,
   );
 
-  return ctx.json({ data: user }, Status.Created);
+  return ctx.json({ data: { ...user, portfolio } }, Status.Created);
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
@@ -60,14 +53,18 @@ app.get("/:id{\\d+}", async (ctx) => {
   criteria.push("id = ?", session.userId);
 
   const user = await database.get<z.infer<api.users.User>>(
-    ...new sql.Query("SELECT * FROM users", criteria, "LIMIT 1").toParams(),
+    ...sql.q`SELECT * FROM users ${criteria} LIMIT 1;`,
   );
 
   if (!user) {
     throw new HTTPException(Status.NotFound);
   }
 
-  return ctx.json({ data: user });
+  const portfolio = await database.get<z.infer<api.portfolios.Portfolio>>(
+    ...sql.q`SELECT * FROM portfolios WHERE userId = ${user.id} LIMIT 1;`,
+  );
+
+  return ctx.json({ data: { ...user, portfolio } });
 });
 
 app.patch("/:id{\\d+}", async (ctx) => {
@@ -80,26 +77,14 @@ app.patch("/:id{\\d+}", async (ctx) => {
     throw new HTTPException(Status.Unauthorized);
   }
 
-  const data = api.users.User.pick({
-    name: true,
-    email: true,
-    password: true,
-  })
-    .partial()
-    .parse(payload);
+  const patch = new sql.Patch(await api.users.patch(payload));
 
-  if (data.password) {
-    data.password = await api.users.password.hash(data.password);
-  }
-
-  const patch = new sql.Patch(data);
   const criteria = new sql.Criteria();
-
   criteria.push("id = ?", id);
   criteria.push("id = ?", session.userId);
 
   const user = await database.get<z.infer<api.users.User>>(
-    ...new sql.Query("UPDATE users", patch, criteria, "RETURNING *").toParams(),
+    ...sql.q`UPDATE users ${patch} ${criteria} RETURNING *`,
   );
 
   return ctx.json({ data: user });

@@ -19,7 +19,7 @@ export const Order = z.object({
   type: z.enum(["bid", "ask"]),
   price: z.coerce.number().gte(0),
   volume: z.coerce.number().gt(0),
-  remaining: z.coerce.number().gt(0),
+  remaining: z.coerce.number().gte(0),
 });
 
 /**
@@ -83,7 +83,7 @@ export async function seed(database: Database) {
             }),
           ),
           "RETURNING *",
-        ).toParams(),
+        ).toExpr(),
       ),
     );
 
@@ -93,7 +93,7 @@ export async function seed(database: Database) {
           "INSERT INTO portfolios",
           new sql.Entry(api.portfolios.create({ userId: stockmaster.id })),
           "RETURNING *",
-        ).toParams(),
+        ).toExpr(),
       ),
     );
 
@@ -114,7 +114,7 @@ export async function seed(database: Database) {
               volume: random.number(50, 100),
             }),
           ),
-        ).toParams(),
+        ).toExpr(),
       );
     }
   });
@@ -144,4 +144,30 @@ export function create(
     status: "pending",
     remaining: data.volume,
   });
+}
+
+/**
+ * Create a patch.
+ */
+export function patch(
+  data: Partial<
+    Pick<z.input<Order>, "status" | "type" | "price" | "volume" | "remaining">
+  >,
+) {
+  const patch = z
+    .object({
+      updatedAt: Order.shape.updatedAt,
+      status: Order.shape.status.optional(),
+      type: Order.shape.type.optional(),
+      price: Order.shape.price.optional(),
+      volume: Order.shape.volume.optional(),
+      remaining: Order.shape.remaining.optional(),
+    })
+    .parse(data);
+
+  if (patch.remaining === 0) {
+    patch.status = "completed";
+  }
+
+  return patch;
 }

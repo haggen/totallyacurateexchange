@@ -1,24 +1,28 @@
 import type { Binding } from "~/src/shared/database";
 
 /**
- * Literal SQL string.
+ * SQL literal.
  */
-type Literal = string;
+export type Literal = string;
 
 /**
- * Component of a SQL query.
+ * SQL expression with binding values.
  */
-type Component = Literal | { toString(): string; bindings?: Binding[] };
+export type Expression = [Literal, ...Binding[]];
 
 /**
- * SQL expression with possible binding values.
+ * SQL query component.
  */
-type Expression = [Literal, ...Binding[]];
+export type Component =
+  | Literal
+  | { toString(): Literal }
+  | Expression
+  | { toExpr(): Expression };
 
 /**
  * Data payload for UPDATE/INSERT queries.
  */
-type Data = Record<string, undefined | Binding | Expression>;
+export type Data = Record<string, undefined | Binding | Expression>;
 
 /**
  * SET component of an UPDATE query.
@@ -66,6 +70,10 @@ export class Patch {
       .filter(Boolean)
       .join(", ")}`;
   }
+
+  toExpr() {
+    return [this.toString(), ...this.bindings] as Expression;
+  }
 }
 
 /**
@@ -110,6 +118,10 @@ export class Entry {
     return `(${entries.map(([key]) => key).join(", ")}) VALUES (${entries
       .map(([, value]) => (Array.isArray(value) ? value[0] : "?"))
       .join(", ")})`;
+  }
+
+  toExpr() {
+    return [this.toString(), ...this.bindings] as Expression;
   }
 }
 
@@ -239,6 +251,10 @@ export class Join {
       })
       .join(" ");
   }
+
+  toExpr() {
+    return [this.toString()] as Expression;
+  }
 }
 
 /**
@@ -275,6 +291,10 @@ export class Criteria {
     }
 
     return `WHERE ${this.clauses.map(([clause]) => clause).join(" AND ")}`;
+  }
+
+  toExpr() {
+    return [this.toString(), ...this.bindings] as Expression;
   }
 }
 
@@ -437,50 +457,74 @@ export class Query {
       .join(" ")};`;
   }
 
-  toParams() {
-    return [this.toString(), ...this.bindings] as const;
+  toExpr() {
+    return [this.toString(), ...this.bindings] as Expression;
   }
 }
 
 /**
- * SQL IN expression.
+ * SQL list of binding values.
  */
-export class In<T extends Literal, U extends string | number> {
-  column: T = "" as T;
-  values: U[] = [];
+export class List {
+  values: Binding[] = [];
 
-  constructor(column?: T, ...values: U[]) {
-    if (column) {
-      this.set(column, ...values);
-    }
+  constructor(values: Binding[]) {
+    this.set(values);
   }
 
   get bindings() {
     return this.values;
   }
 
-  merge(list: In<T, U>) {
+  merge(list: List) {
     this.values.push(...list.values);
   }
 
-  set(column: T, ...values: U[]) {
-    this.column = column;
+  set(values: Binding[]) {
     this.values = [...values];
   }
 
-  push(...values: U[]) {
+  push(...values: Binding[]) {
     this.values.push(...values);
   }
 
   toString() {
-    if (this.values.length === 0) {
-      return "";
+    return `(${this.values.map(() => "?").join(", ")})`;
+  }
+
+  toExpr() {
+    return [this.toString(), ...this.bindings] as Expression;
+  }
+}
+
+function hasToExpr(value: unknown): value is { toExpr(): Expression } {
+  return typeof value === "object" && value !== null && "toExpr" in value;
+}
+
+/**
+ * SQL template tag.
+ */
+export function q(
+  strings: TemplateStringsArray,
+  ...interpolations: (Binding | { toExpr(): Expression })[]
+) {
+  let literal = "";
+  const bindings: Binding[] = [];
+
+  for (let i = 0; i < strings.length; i++) {
+    const interpolation = interpolations[i - 1];
+
+    if (hasToExpr(interpolation)) {
+      const expr = interpolation.toExpr();
+      literal += expr[0];
+      bindings.push(...expr.slice(1));
+    } else if (interpolation) {
+      literal += "?";
+      bindings.push(interpolation);
     }
 
-    return `${this.column} IN (${this.values.map(() => "?").join(", ")})`;
+    literal += strings[i];
   }
 
-  toParams() {
-    return [this.toString(), ...this.bindings] as const;
-  }
+  return [literal, ...bindings] as Expression;
 }

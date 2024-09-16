@@ -5,7 +5,7 @@ export function number(min = 0, max = 1) {
   if (min === 0 && max === 1) {
     return Math.random();
   }
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(Math.random() * (max - min) + min);
 }
 
 /**

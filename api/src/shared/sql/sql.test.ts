@@ -4,9 +4,9 @@ import {
   Criteria,
   Entry,
   Group,
-  In,
   Join,
   Limit,
+  List,
   Offset,
   Order,
   Patch,
@@ -14,6 +14,7 @@ import {
   Returning,
   Selection,
   Source,
+  q,
 } from "./sql";
 
 describe("Patch", () => {
@@ -42,13 +43,9 @@ describe("Patch", () => {
     expect(patch.data).toEqual({ a: 1, b: 2, c: ["? + ?", 3, 4] });
   });
 
-  test("toString", () => {
+  test("toExpr/toString/bindings", () => {
     patch.push({ d: undefined });
-    expect(patch.toString()).toEqual("SET a = ?, b = ?, c = ? + ?");
-  });
-
-  test("bindings", () => {
-    expect(patch.bindings).toEqual([1, 2, 3, 4]);
+    expect(patch.toExpr()).toEqual(["SET a = ?, b = ?, c = ? + ?", 1, 2, 3, 4]);
   });
 });
 
@@ -78,13 +75,15 @@ describe("Entry", () => {
     expect(entry.data).toEqual({ a: 1, b: 2, c: ["? + ?", 3, 4] });
   });
 
-  test("toString", () => {
+  test("toExpr/toString/bindings", () => {
     entry.push({ d: undefined });
-    expect(entry.toString()).toEqual("(a, b, c) VALUES (?, ?, ? + ?)");
-  });
-
-  test("bindings", () => {
-    expect(entry.bindings).toEqual([1, 2, 3, 4]);
+    expect(entry.toExpr()).toEqual([
+      "(a, b, c) VALUES (?, ?, ? + ?)",
+      1,
+      2,
+      3,
+      4,
+    ]);
   });
 });
 
@@ -232,12 +231,13 @@ describe("Criteria", () => {
     ]);
   });
 
-  test("toString", () => {
-    expect(criteria.toString()).toEqual("WHERE a = ? AND b = ? AND c = ?");
-  });
-
-  test("bindings", () => {
-    expect(criteria.bindings).toEqual([1, 2, 3]);
+  test("toExpr/toString/bindings", () => {
+    expect(criteria.toExpr()).toEqual([
+      "WHERE a = ? AND b = ? AND c = ?",
+      1,
+      2,
+      3,
+    ]);
   });
 });
 
@@ -342,7 +342,9 @@ describe("Query", () => {
   test("push", () => {
     const limit = new Limit(1);
     const offset = new Offset(1);
+
     query.push(limit, offset);
+
     expect(query.components).toEqual([
       "SELECT",
       select,
@@ -353,34 +355,39 @@ describe("Query", () => {
     ]);
   });
 
-  test("toString", () => {
-    expect(query.toString()).toEqual(
-      "SELECT * FROM t WHERE f = ? LIMIT 1 OFFSET 1;",
-    );
-  });
-
-  test("toParams/bindings", () => {
-    expect(query.toParams()).toEqual([
+  test("toExpr/toString/bindings", () => {
+    expect(query.toExpr()).toEqual([
       "SELECT * FROM t WHERE f = ? LIMIT 1 OFFSET 1;",
       1,
     ]);
   });
 });
 
-describe("In", () => {
+describe("List", () => {
+  const expr = new List([1, 2, 3]);
+
   test("constructor/set", () => {
-    const expr = new In("f", 1, 2, 3);
-    expect(expr.column).toEqual("f");
     expect(expr.values).toEqual([1, 2, 3]);
   });
 
-  test("toString", () => {
-    const expr = new In("f", 1, 2, 3);
-    expect(expr.toString()).toEqual("f IN (?, ?, ?)");
+  test("push", () => {
+    expr.push(4, 5);
+    expect(expr.values).toEqual([1, 2, 3, 4, 5]);
   });
 
-  test("bindings", () => {
-    const expr = new In("f", 1, 2, 3);
-    expect(expr.bindings).toEqual([1, 2, 3]);
+  test("toExpr/toString/bindings", () => {
+    expect(expr.toExpr()).toEqual(["(?, ?, ?, ?, ?)", 1, 2, 3, 4, 5]);
   });
+});
+
+test("q", () => {
+  expect(q`SELECT * FROM t WHERE f = ${1} OR f = ${2};`).toEqual([
+    "SELECT * FROM t WHERE f = ? OR f = ?;",
+    1,
+    2,
+  ]);
+
+  expect(
+    q`UPDATE t ${new Patch({ a: 1, b: 2 })} ${new Criteria("c = ?", 3)};`,
+  ).toEqual(["UPDATE t SET a = ?, b = ? WHERE c = ?;", 1, 2, 3]);
 });

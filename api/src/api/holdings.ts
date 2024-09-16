@@ -57,3 +57,15 @@ export function create(
     volume: true,
   }).parse(data);
 }
+
+/**
+ * Create a patch.
+ */
+export function patch(data: Partial<Pick<z.input<Holding>, "volume">>) {
+  return z
+    .object({
+      updatedAt: Holding.shape.updatedAt,
+      volume: Holding.shape.volume.optional(),
+    })
+    .parse(data);
+}
