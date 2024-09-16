@@ -7,9 +7,9 @@ import { Database } from "~/src/shared/database";
 import { print } from "~/src/shared/log";
 import type { Env } from "~/src/shared/request";
 import {
-  handleErrors,
-  logger,
-  setRequestDatabase,
+  handleError,
+  setLogger,
+  setRequestDatabaseInstance,
   setRequestSession,
 } from "~/src/shared/request";
 import v1 from "~/src/v1";
@@ -23,10 +23,18 @@ import v1 from "~/src/v1";
 
 const app = new Hono<Env>();
 
-app.onError(handleErrors);
+app.onError(handleError);
 
-app.use(logger);
-app.use(setRequestDatabase(() => Database.open(getConfig("databaseUrl"))));
+app.use(setLogger());
+
+app.use(
+  setRequestDatabaseInstance(async () => {
+    const database = await Database.open(getConfig("databaseUrl"));
+    database.verbose = true;
+    return database;
+  }),
+);
+
 app.use(setRequestSession(api.sessions.findNotExpiredByToken));
 
 app.route("/v1", v1);

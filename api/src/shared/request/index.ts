@@ -1,5 +1,6 @@
 import { SQLiteError } from "bun:sqlite";
-import type { Context, Next } from "hono";
+import type { Context } from "hono";
+import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 import type { Database } from "~/src/shared/database";
@@ -18,9 +19,9 @@ export type Env<S = unknown> = {
 };
 
 /**
- * Handle request/response errors.
+ * Handle request/response error.
  */
-export function handleErrors(err: Error, ctx: Context) {
+export function handleError(err: Error, ctx: Context) {
   if (err instanceof HTTPException) {
     return err.getResponse();
   }
@@ -45,32 +46,33 @@ export function handleErrors(err: Error, ctx: Context) {
 }
 
 /**
- * Log requests.
+ * Get request logger middleware.
  */
-export async function logger(ctx: Context, next: Next) {
-  performance.mark("request");
+export function setLogger() {
+  return createMiddleware(async (ctx, next) => {
+    performance.mark("request");
 
-  await next();
+    await next();
 
-  const { duration } = performance.measure("request", "request");
+    const { duration } = performance.measure("request", "request");
 
-  print(
-    "log",
-    "request",
-    ctx.req.method,
-    new URL(ctx.req.url).pathname,
-    ctx.res.status,
-    `${duration.toFixed(2)}ms`,
-  );
+    print(
+      "log",
+      "request",
+      ctx.req.method,
+      new URL(ctx.req.url).pathname,
+      ctx.res.status,
+      `${duration.toFixed(2)}ms`,
+    );
+  });
 }
 
 /**
- * Open a database connection for each request.
+ * Middleware that opens a database instance for each request and handles transaction.
  */
-export function setRequestDatabase(open: () => Promise<Database>) {
-  return async (ctx: Context<Env>, next: Next) => {
+export function setRequestDatabaseInstance(open: () => Promise<Database>) {
+  return createMiddleware(async (ctx, next) => {
     await using database = await open();
-    database.verbose = true;
     ctx.set("database", database);
 
     await database.run("BEGIN;");
@@ -81,22 +83,28 @@ export function setRequestDatabase(open: () => Promise<Database>) {
     } else {
       await database.run("COMMIT;");
     }
-  };
+  });
 }
 
 /**
- * Read and fetch session data from the request.
+ * Middleware to fetch session from the request's authorization headers.
  */
 export function setRequestSession<T>(
-  fetcher: (database: Database, token: string) => Promise<T>,
+  find: (database: Database, token: string) => Promise<T>,
 ) {
-  return async (ctx: Context<Env>, next: Next) => {
+  return createMiddleware(async (ctx, next) => {
     const database = ctx.get("database");
-    const bearer = ctx.req.header("authorization");
+    const header = ctx.req.header("authorization");
 
-    if (bearer) {
-      const token = bearer.slice("Bearer ".length);
-      const session = await fetcher(database, token);
+    if (header) {
+      const match = header.match(/^Bearer (.+)$/);
+
+      if (!match) {
+        throw new UnauthorizedError();
+      }
+
+      const token = match[1];
+      const session = await find(database, token);
 
       if (session) {
         ctx.set("session", session);
@@ -104,5 +112,5 @@ export function setRequestSession<T>(
     }
 
     await next();
-  };
+  });
 }

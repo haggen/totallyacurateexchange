@@ -4,7 +4,7 @@ import { migrate } from "~/src/database";
 import { Database } from "~/src/shared/database";
 import {
   type Env,
-  setRequestDatabase,
+  setRequestDatabaseInstance,
   setRequestSession,
 } from "~/src/shared/request";
 
@@ -21,7 +21,7 @@ export async function prepare() {
 
   const app = new Hono<Env>();
 
-  app.use(setRequestDatabase(() => Promise.resolve(database)));
+  app.use(setRequestDatabaseInstance(() => Promise.resolve(database)));
   app.use(setRequestSession(api.sessions.findNotExpiredByToken));
 
   return { app, database };
