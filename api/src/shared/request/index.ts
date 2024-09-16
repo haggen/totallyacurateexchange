@@ -73,13 +73,13 @@ export function setRequestDatabase(open: () => Promise<Database>) {
     database.verbose = true;
     ctx.set("database", database);
 
-    try {
-      await database.run("BEGIN;");
-      await next();
-      await database.run("COMMIT;");
-    } catch (err) {
+    await database.run("BEGIN;");
+    await next();
+
+    if (ctx.error) {
       await database.run("ROLLBACK;");
-      throw err;
+    } else {
+      await database.run("COMMIT;");
     }
   };
 }
