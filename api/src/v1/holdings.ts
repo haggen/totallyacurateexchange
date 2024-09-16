@@ -34,7 +34,7 @@ app.get("/", async (ctx) => {
   );
 
   const stocks = await database.all<z.infer<api.stocks.Stock>>(
-    ...sql.q`SELECT * FROM stocks WHERE id IN (${new sql.List(holdings.map((holding) => holding.stockId))}) LIMIT ${holdings.length};`,
+    ...sql.q`SELECT * FROM stocks WHERE id IN ${new sql.List(holdings.map((holding) => holding.stockId))} LIMIT ${holdings.length};`,
   );
 
   return ctx.json(
