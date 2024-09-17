@@ -1,13 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.6.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
+  "files": {
+    "ignore": ["dist"]
+  },
   "organizeImports": {
     "enabled": true
   },
-  "formatter": {
-    "indentStyle": "space"
-  },
   "linter": {
+    "enabled": true,
     "rules": {
+      "recommended": true,
       "complexity": {
         "noBannedTypes": "warn"
       }
