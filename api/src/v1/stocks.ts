@@ -10,40 +10,35 @@ const app = new Hono<Env>();
 export default app;
 
 app.get("/", async (ctx) => {
-  const database = ctx.get("database");
+	const database = ctx.get("database");
 
-  const criteria = new sql.Criteria();
+	const stocks = await database.all<
+		z.infer<api.stocks.Stock> & { minPrice: number; maxPrice: number }
+	>(
+		...sql.q`
+      SELECT stocks.*, MAX(orders.price) as maxPrice, MIN(orders.price) as minPrice 
+      FROM stocks orders ON orders.stockId = stocks.id ORDER BY name ASC;
+    `,
+	);
 
-  const stocks = await database.all<z.infer<api.stocks.Stock>>(
-    ...new sql.Query(
-      "SELECT * FROM stocks",
-      criteria,
-      "ORDER BY name ASC",
-    ).toExpr(),
-  );
-
-  return ctx.json({ data: stocks }, Status.Ok);
+	return ctx.json(stocks);
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
-  const database = ctx.get("database");
-  const id = Id.parse(ctx.req.param("id"));
+	const database = ctx.get("database");
+	const id = Id.parse(ctx.req.param("id"));
 
-  const criteria = new sql.Criteria();
+	const criteria = new sql.Criteria();
 
-  criteria.push("id = ?", id);
+	criteria.push("id = ?", id);
 
-  const stock = await database.get<z.infer<api.stocks.Stock>>(
-    ...new sql.Query(
-      "SELECT * FROM stocks",
-      criteria,
-      "ORDER BY name ASC",
-    ).toExpr(),
-  );
+	const stock = await database.get<z.infer<api.stocks.Stock>>(
+		...sql.q`SELECT * FROM stocks ${criteria} LIMIT 1`,
+	);
 
-  if (!stock) {
-    return ctx.json(undefined, Status.NotFound);
-  }
+	if (!stock) {
+		return ctx.json({}, Status.NotFound);
+	}
 
-  return ctx.json({ data: stock });
+	return ctx.json(stock);
 });

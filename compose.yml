@@ -2,7 +2,9 @@ services:
   api:
     build: ./api
     volumes:
-      - storage:/app/storage
+      - storage:/app/api/storage
+  client:
+    build: ./client
 
 volumes:
   storage: {}

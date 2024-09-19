@@ -2,7 +2,7 @@ import { Hono } from "hono";
 
 import holdings from "./holdings";
 import orders from "./orders";
-import portfolios from "./portfolios";
+import portfolio from "./portfolio";
 import sessions from "./sessions";
 import stocks from "./stocks";
 import trades from "./trades";
@@ -13,7 +13,7 @@ export default app;
 
 app.route("/holdings", holdings);
 app.route("/orders", orders);
-app.route("/portfolios", portfolios);
+app.route("/portfolio", portfolio);
 app.route("/sessions", sessions);
 app.route("/stocks", stocks);
 app.route("/trades", trades);

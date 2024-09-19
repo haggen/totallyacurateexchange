@@ -19,14 +19,14 @@ export const Password = z.string().min(15);
  * Name schema.
  */
 export const Name = z.preprocess(
-  (value) => String(value).replace(/\s+/g, " "),
-  z.string().trim(),
+	(value) => String(value).replace(/\s+/g, " "),
+	z.string().trim(),
 );
 
 /**
  * Automatic datetime schema.
  */
 export const AutoDateTime = z
-  .string()
-  .datetime()
-  .default(() => new Date().toISOString());
+	.string()
+	.datetime()
+	.default(() => new Date().toISOString());

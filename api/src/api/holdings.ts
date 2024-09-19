@@ -7,12 +7,12 @@ import { AutoDateTime, Id } from "~/src/shared/schema";
  * Holding schema.
  */
 export const Holding = z.object({
-  id: Id,
-  createdAt: AutoDateTime,
-  updatedAt: AutoDateTime,
-  portfolioId: Id,
-  stockId: Id,
-  volume: z.coerce.number().gte(0),
+	id: Id,
+	createdAt: AutoDateTime,
+	updatedAt: AutoDateTime,
+	portfolioId: Id,
+	stockId: Id,
+	volume: z.coerce.number().gte(0),
 });
 
 /**
@@ -24,11 +24,11 @@ export type Holding = typeof Holding;
  * Run migrations.
  */
 export async function migrate(database: Database) {
-  await api.portfolios.migrate(database);
-  await api.stocks.migrate(database);
+	await api.portfolios.migrate(database);
+	await api.stocks.migrate(database);
 
-  await database.run(
-    `
+	await database.run(
+		`
       CREATE TABLE IF NOT EXISTS holdings (
         id INTEGER PRIMARY KEY,
         createdAt TEXT NOT NULL,
@@ -40,32 +40,32 @@ export async function migrate(database: Database) {
         UNIQUE (portfolioId, stockId)
       );
     `,
-  );
+	);
 }
 
 /**
  * Create a new holding.
  */
 export function create(
-  data: Pick<z.input<Holding>, "portfolioId" | "stockId" | "volume">,
+	data: Pick<z.input<Holding>, "portfolioId" | "stockId" | "volume">,
 ) {
-  return Holding.pick({
-    createdAt: true,
-    updatedAt: true,
-    portfolioId: true,
-    stockId: true,
-    volume: true,
-  }).parse(data);
+	return Holding.pick({
+		createdAt: true,
+		updatedAt: true,
+		portfolioId: true,
+		stockId: true,
+		volume: true,
+	}).parse(data);
 }
 
 /**
  * Create a patch.
  */
 export function patch(data: Partial<Pick<z.input<Holding>, "volume">>) {
-  return z
-    .object({
-      updatedAt: Holding.shape.updatedAt,
-      volume: Holding.shape.volume.optional(),
-    })
-    .parse(data);
+	return z
+		.object({
+			updatedAt: Holding.shape.updatedAt,
+			volume: Holding.shape.volume.optional(),
+		})
+		.parse(data);
 }

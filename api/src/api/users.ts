@@ -7,12 +7,12 @@ import { AutoDateTime, Email, Id, Name } from "~/src/shared/schema";
  * User schema.
  */
 export const User = z.object({
-  id: Id,
-  createdAt: AutoDateTime,
-  updatedAt: AutoDateTime,
-  name: Name,
-  email: Email,
-  password: z.string().min(15),
+	id: Id,
+	createdAt: AutoDateTime,
+	updatedAt: AutoDateTime,
+	name: Name,
+	email: Email,
+	password: z.string().min(15),
 });
 
 /**
@@ -24,8 +24,8 @@ export type User = typeof User;
  * Run migrations.
  */
 export async function migrate(database: Database) {
-  await database.run(
-    `
+	await database.run(
+		`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         createdAt TEXT NOT NULL,
@@ -35,65 +35,65 @@ export async function migrate(database: Database) {
         password TEXT NOT NULL
       );
     `,
-  );
+	);
 }
 
 /**
  * Password utilities.
  */
 export const password = {
-  /**
-   * Hash plain text password.
-   */
-  hash(value: string) {
-    return Bun.password.hash(value);
-  },
+	/**
+	 * Hash plain text password.
+	 */
+	hash(value: string) {
+		return Bun.password.hash(value);
+	},
 
-  /**
-   * Verify plain text password against hash.
-   */
-  verify(value: string, hash: string) {
-    return Bun.password.verify(value, hash);
-  },
+	/**
+	 * Verify plain text password against hash.
+	 */
+	verify(value: string, hash: string) {
+		return Bun.password.verify(value, hash);
+	},
 };
 
 /**
  * Create new user.
  */
 export async function create(
-  data: Pick<z.input<User>, "name" | "email" | "password">,
+	data: Pick<z.input<User>, "name" | "email" | "password">,
 ) {
-  const user = User.pick({
-    createdAt: true,
-    updatedAt: true,
-    name: true,
-    email: true,
-    password: true,
-  }).parse(data);
+	const user = User.pick({
+		createdAt: true,
+		updatedAt: true,
+		name: true,
+		email: true,
+		password: true,
+	}).parse(data);
 
-  user.password = await password.hash(user.password);
+	user.password = await password.hash(user.password);
 
-  return user;
+	return user;
 }
 
 /**
  * Create a patch.
  */
 export async function patch(
-  data: Partial<Pick<z.input<User>, "name" | "email" | "password">>,
+	data: Partial<Pick<z.input<User>, "name" | "email" | "password">>,
 ) {
-  const user = z
-    .object({
-      updatedAt: User.shape.updatedAt,
-      name: User.shape.name.optional(),
-      email: User.shape.name.optional(),
-      password: User.shape.name.optional(),
-    })
-    .parse(data);
+	const user = z
+		.object({
+			updatedAt: User.shape.updatedAt,
+			name: User.shape.name.optional(),
+			email: User.shape.name.optional(),
+			password: User.shape.name.optional(),
+		})
+		.parse(data);
 
-  if (user.password) {
-    user.password = await password.hash(user.password);
-  }
+	if (user.password) {
+		user.password = await password.hash(user.password);
+	}
 
-  return user;
+	return user;
 }
