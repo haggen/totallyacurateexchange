@@ -7,11 +7,11 @@ import { AutoDateTime, Id } from "~/src/shared/schema";
  * Portfolio schema.
  */
 export const Portfolio = z.object({
-	id: Id,
-	createdAt: AutoDateTime,
-	updatedAt: AutoDateTime,
-	userId: Id,
-	balance: z.number().default(100_000),
+  id: Id,
+  createdAt: AutoDateTime,
+  updatedAt: AutoDateTime,
+  userId: Id,
+  balance: z.number().default(100_000),
 });
 
 /**
@@ -23,10 +23,10 @@ export type Portfolio = typeof Portfolio;
  * Run migrations.
  */
 export async function migrate(database: Database) {
-	await api.users.migrate(database);
+  await api.users.migrate(database);
 
-	await database.run(
-		`
+  await database.run(
+    `
       CREATE TABLE IF NOT EXISTS portfolios (
         id INTEGER PRIMARY KEY,
         createdAt TEXT NOT NULL,
@@ -35,27 +35,27 @@ export async function migrate(database: Database) {
         balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0)
       );
     `,
-	);
+  );
 }
 
 /**
  * Create a new portfolio.
  */
 export function create(data: Pick<z.input<Portfolio>, "userId" | "balance">) {
-	return Portfolio.pick({
-		createdAt: true,
-		updatedAt: true,
-		userId: true,
-		balance: true,
-	}).parse(data);
+  return Portfolio.pick({
+    createdAt: true,
+    updatedAt: true,
+    userId: true,
+    balance: true,
+  }).parse(data);
 }
 
 /**
  * Create a patch.
  */
 export function patch(data: Partial<Pick<z.input<Portfolio>, "balance">>) {
-	return Portfolio.pick({
-		updatedAt: true,
-		balance: true,
-	}).parse(data);
+  return Portfolio.pick({
+    updatedAt: true,
+    balance: true,
+  }).parse(data);
 }

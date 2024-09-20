@@ -3,9 +3,9 @@ import { api } from "~/src/api";
 import { migrate } from "~/src/database";
 import { Database } from "~/src/shared/database";
 import {
-	type Env,
-	setRequestDatabaseInstance,
-	setRequestSession,
+  type Env,
+  setRequestDatabaseInstance,
+  setRequestSession,
 } from "~/src/shared/request";
 
 /**
@@ -14,15 +14,15 @@ import {
 export const now = new Date("1990-05-04T06:00:00.000Z");
 
 export async function prepare() {
-	const database = await Database.open(new URL("sqlite://"));
-	database.close = () => Promise.resolve();
+  const database = await Database.open(new URL("sqlite://"));
+  database.close = () => Promise.resolve();
 
-	await migrate(database);
+  await migrate(database);
 
-	const app = new Hono<Env>();
+  const app = new Hono<Env>();
 
-	app.use(setRequestDatabaseInstance(() => Promise.resolve(database)));
-	app.use(setRequestSession(api.sessions.findNotExpiredByToken));
+  app.use(setRequestDatabaseInstance(() => Promise.resolve(database)));
+  app.use(setRequestSession(api.sessions.findNotExpiredByToken));
 
-	return { app, database };
+  return { app, database };
 }

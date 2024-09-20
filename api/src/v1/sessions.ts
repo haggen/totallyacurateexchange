@@ -13,87 +13,87 @@ const app = new Hono<Env<z.infer<api.sessions.Session>>>();
 export default app;
 
 app.post("/", async (ctx) => {
-	const database = ctx.get("database");
-	const payload = await ctx.req.json();
+  const database = ctx.get("database");
+  const payload = await ctx.req.json();
 
-	const user = await database.get<z.infer<api.users.User>>(
-		"SELECT * FROM users WHERE email = ? LIMIT 1;",
-		Email.parse(payload.email),
-	);
+  const user = await database.get<z.infer<api.users.User>>(
+    "SELECT * FROM users WHERE email = ? LIMIT 1;",
+    Email.parse(payload.email),
+  );
 
-	if (!user) {
-		throw new HTTPException(Status.NotFound);
-	}
+  if (!user) {
+    throw new HTTPException(Status.NotFound);
+  }
 
-	const authenticated = await api.users.password.verify(
-		payload.password,
-		user.password,
-	);
+  const authenticated = await api.users.password.verify(
+    payload.password,
+    user.password,
+  );
 
-	if (!authenticated) {
-		throw new HTTPException(Status.Unauthorized);
-	}
+  if (!authenticated) {
+    throw new HTTPException(Status.Unauthorized);
+  }
 
-	const session = must(
-		await database.get<z.infer<api.sessions.Session>>(
-			...sql.q`INSERT INTO sessions ${new sql.Entry(api.sessions.create({ userId: user.id }))} RETURNING *;`,
-		),
-	);
+  const session = must(
+    await database.get<z.infer<api.sessions.Session>>(
+      ...sql.q`INSERT INTO sessions ${new sql.Entry(api.sessions.create({ userId: user.id }))} RETURNING *;`,
+    ),
+  );
 
-	setCookie(ctx, "session", session.token, {
-		httpOnly: true,
-		expires: new Date(session.expiresAt),
-	});
+  setCookie(ctx, "session", session.token, {
+    httpOnly: true,
+    expires: new Date(session.expiresAt),
+  });
 
-	return ctx.json(session, Status.Created);
+  return ctx.json(session, Status.Created);
 });
 
 app.get("/:id{\\d+}", async (ctx) => {
-	const database = ctx.get("database");
-	const session = ctx.get("session");
-	const id = Id.parse(ctx.req.param("id"));
+  const database = ctx.get("database");
+  const session = ctx.get("session");
+  const id = Id.parse(ctx.req.param("id"));
 
-	if (!session) {
-		throw new HTTPException(Status.Unauthorized);
-	}
+  if (!session) {
+    throw new HTTPException(Status.Unauthorized);
+  }
 
-	const criteria = new sql.Criteria();
-	criteria.push("id = ?", id);
-	criteria.push("userId = ?", session.userId);
+  const criteria = new sql.Criteria();
+  criteria.push("id = ?", id);
+  criteria.push("userId = ?", session.userId);
 
-	const target = await database.get<z.infer<api.sessions.Session>>(
-		...sql.q`SELECT * FROM sessions ${criteria} LIMIT 1;`,
-	);
+  const target = await database.get<z.infer<api.sessions.Session>>(
+    ...sql.q`SELECT * FROM sessions ${criteria} LIMIT 1;`,
+  );
 
-	if (!target) {
-		throw new HTTPException(Status.NotFound);
-	}
+  if (!target) {
+    throw new HTTPException(Status.NotFound);
+  }
 
-	return ctx.json(target);
+  return ctx.json(target);
 });
 
 app.delete("/:id{\\d+}", async (ctx) => {
-	const database = ctx.get("database");
-	const session = ctx.get("session");
-	const id = Id.parse(ctx.req.param("id"));
+  const database = ctx.get("database");
+  const session = ctx.get("session");
+  const id = Id.parse(ctx.req.param("id"));
 
-	if (!session) {
-		throw new HTTPException(Status.Unauthorized);
-	}
+  if (!session) {
+    throw new HTTPException(Status.Unauthorized);
+  }
 
-	const criteria = new sql.Criteria();
-	criteria.push("id = ?", id);
-	criteria.push("userId = ?", session.userId);
+  const criteria = new sql.Criteria();
+  criteria.push("id = ?", id);
+  criteria.push("userId = ?", session.userId);
 
-	const target = await database.get<z.infer<api.sessions.Session>>(
-		...sql.q`DELETE FROM sessions ${criteria};`,
-	);
+  const target = await database.get<z.infer<api.sessions.Session>>(
+    ...sql.q`DELETE FROM sessions ${criteria};`,
+  );
 
-	if (!target) {
-		throw new HTTPException(Status.NotFound);
-	}
+  if (!target) {
+    throw new HTTPException(Status.NotFound);
+  }
 
-	deleteCookie(ctx, "session");
+  deleteCookie(ctx, "session");
 
-	return ctx.json(target, Status.Ok);
+  return ctx.json(target, Status.Ok);
 });

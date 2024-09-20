@@ -1,20 +1,19 @@
 {
-	"version": "0.0.0",
-	"author": "Arthur <arthur@corenzan.com>",
-	"license": "Apache-2.0",
-	"type": "module",
-	"scripts": {
-		"start": "bun --watch src/server.ts",
-		"fix": "biome check --write",
-		"check": "biome check && tsc --noEmit"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.1",
-		"@types/bun": "^1.1.9",
-		"typescript": "^5.6.2"
-	},
-	"dependencies": {
-		"hono": "^4.6.1",
-		"zod": "^3.23.8"
-	}
+  "version": "0.0.0",
+  "author": "Arthur <arthur@corenzan.com>",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun --hot src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.1",
+    "@types/bun": "^1.1.9",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "hono": "^4.6.1",
+    "zod": "^3.23.8"
+  }
 }
