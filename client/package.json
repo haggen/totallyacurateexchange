@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm run start:${NODE_ENV:-development}",
     "start:development": "parcel --no-cache",
-    "start:production": "http-server dist -p 1234",
+    "start:production": "http-server dist -p 1234 -P http://localhost:1234?",
     "build": "parcel build",
     "typecheck": "tsc --noEmit"
   },
