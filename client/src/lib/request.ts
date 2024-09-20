@@ -2,6 +2,8 @@ type ReqDesc<T = unknown> = {
   method: "get" | "post" | "put" | "patch" | "delete";
   headers: Record<string, string>;
   body?: T;
+  signal?: AbortSignal;
+  credentials?: RequestCredentials;
 };
 
 type RespDesc<T = unknown> = {
@@ -19,7 +21,7 @@ export async function request<T>(url: string, reqDesc: Partial<ReqDesc> = {}) {
   }
 
   reqDesc.method ??= "get";
-
+  reqDesc.credentials ??= "same-origin";
   reqDesc.headers ??= {};
   reqDesc.headers["Content-Type"] ??= "application/json; charset=utf-8";
 
@@ -27,7 +29,8 @@ export async function request<T>(url: string, reqDesc: Partial<ReqDesc> = {}) {
     method: reqDesc.method,
     headers: reqDesc.headers,
     body: JSON.stringify(reqDesc.body),
-    credentials: "same-origin",
+    credentials: reqDesc.credentials,
+    signal: reqDesc.signal,
   });
 
   const respDesc = {

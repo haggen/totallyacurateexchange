@@ -19,7 +19,7 @@ export function Layout({ children }: Props) {
               <Link href="/sign-in">Sign in</Link>
             </li>
             <li>
-              <Link href="/sign-up">Join the game</Link>
+              <Link href="/join">Join the game</Link>
             </li>
           </ul>
         </nav>
@@ -34,13 +34,17 @@ export function Layout({ children }: Props) {
           <nav className="font-bold">
             <ul className="flex items-center gap-6">
               <li>
-                <a href="/">GitHub</a>
+                <a href="https://github.com/haggen/totallyacurateexchange">
+                  GitHub
+                </a>
               </li>
               <li>
-                <a href="/">Privacy policy</a>
+                <a href="/privacy">Privacy policy</a>
               </li>
               <li>
-                <a href="/">Help</a>
+                <a href="https://github.com/haggen/totallyacurateexchange">
+                  Help
+                </a>
               </li>
             </ul>
           </nav>

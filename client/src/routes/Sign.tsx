@@ -49,7 +49,7 @@ export default function Page() {
                 type="email"
                 id={id}
                 name="email"
-                placeholder="warren@example.com"
+                placeholder="e.g. warren@example.com"
                 required
               />
             )}
@@ -61,7 +61,7 @@ export default function Page() {
                 type="password"
                 id={id}
                 name="password"
-                placeholder="************"
+                placeholder="e.g. ************"
                 required
                 minLength={12}
               />

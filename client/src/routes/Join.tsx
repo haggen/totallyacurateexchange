@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useLocation } from "wouter";
+import { Alert } from "~/src/components/Alert";
 import { Button } from "~/src/components/Button";
 import { Field } from "~/src/components/Field";
 import { Input } from "~/src/components/Input";
@@ -40,7 +41,7 @@ export default function Page() {
       >
         <legend className="sr-only">Sign up</legend>
 
-        {error ? <div>{String(error)}</div> : null}
+        <Alert error={error} />
 
         <fieldset className="flex flex-col gap-6">
           <Field label="Name">
@@ -49,7 +50,7 @@ export default function Page() {
                 type="text"
                 id={id}
                 name="name"
-                placeholder="Warren Buffett"
+                placeholder="e.g. Warren Buffett"
                 autoComplete="name"
                 required
               />
@@ -62,7 +63,7 @@ export default function Page() {
                 type="email"
                 id={id}
                 name="email"
-                placeholder="warren@example.com"
+                placeholder="e.g. warren@example.com"
                 autoComplete="email"
                 required
               />
@@ -75,7 +76,7 @@ export default function Page() {
                 type="password"
                 id={id}
                 name="password"
-                placeholder="************"
+                placeholder="e.g. ************"
                 autoComplete="new-password"
                 required
                 minLength={12}

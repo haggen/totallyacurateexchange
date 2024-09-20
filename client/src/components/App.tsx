@@ -2,19 +2,19 @@ import { Route, Switch } from "wouter";
 import { Layout } from "~/src/components/Layout";
 
 import { QueryClientProvider } from "~/src/components/QueryClientProvider";
-import Home from "~/src/routes/Home";
+import Dash from "~/src/routes/Dash";
+import Join from "~/src/routes/Join";
 import NotFound from "~/src/routes/NotFound";
-import SignIn from "~/src/routes/SignIn";
-import SignUp from "~/src/routes/SignUp";
+import Sign from "~/src/routes/Sign";
 
 export function App() {
   return (
     <QueryClientProvider>
       <Layout>
         <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/sign-up" component={SignUp} />
-          <Route path="/sign-in" component={SignIn} />
+          <Route path="/" component={Dash} />
+          <Route path="/join" component={Join} />
+          <Route path="/sign-in" component={Sign} />
           <Route component={NotFound} />
         </Switch>
       </Layout>
