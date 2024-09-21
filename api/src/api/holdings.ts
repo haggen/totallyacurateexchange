@@ -2,6 +2,7 @@ import { z } from "zod";
 import { api } from "~/src/api";
 import type { Database } from "~/src/shared/database";
 import { AutoDateTime, Id } from "~/src/shared/schema";
+import type { AtLeastOne } from "~/src/shared/types";
 
 /**
  * Holding schema.
@@ -61,7 +62,7 @@ export function create(
 /**
  * Create a patch.
  */
-export function patch(data: Partial<Pick<z.input<Holding>, "shares">>) {
+export function patch(data: AtLeastOne<Pick<z.input<Holding>, "shares">>) {
   return z
     .object({
       updatedAt: Holding.shape.updatedAt,

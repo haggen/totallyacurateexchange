@@ -126,8 +126,8 @@ describe("Returning", () => {
     expect(returning.values).toEqual(["a", "b", "c", "d", "e", "f"]);
   });
 
-  test("toString", () => {
-    expect(returning.toString()).toEqual("RETURNING a, b, c, d, e, f");
+  test("toExpr/toString", () => {
+    expect(returning.toExpr()).toEqual(["RETURNING a, b, c, d, e, f"]);
   });
 });
 
@@ -357,7 +357,7 @@ describe("Query", () => {
 
   test("toExpr/toString/bindings", () => {
     expect(query.toExpr()).toEqual([
-      "SELECT * FROM t WHERE f = ? LIMIT 1 OFFSET 1;",
+      "SELECT * FROM t WHERE f = ? LIMIT 1 OFFSET 1",
       1,
     ]);
   });

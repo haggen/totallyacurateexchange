@@ -135,7 +135,7 @@ export class Returning {
     this.set(...values);
   }
 
-  merge(selection: Selection) {
+  merge(selection: Returning) {
     this.values.push(...selection.values);
   }
 
@@ -152,6 +152,10 @@ export class Returning {
       return "";
     }
     return `RETURNING ${this.values.join(", ")}`;
+  }
+
+  toExpr() {
+    return [this.toString()] as Expression;
   }
 }
 
@@ -415,6 +419,40 @@ export class Offset {
       return "";
     }
     return `OFFSET ${this.value}`;
+  }
+}
+
+/**
+ * LIMIT and OFFSET components of a query.
+ */
+export class Pagination {
+  length: number;
+  page: number;
+
+  constructor(length: number, page = 1) {
+    this.length = length;
+    this.page = page;
+  }
+
+  get bindings() {
+    return [this.length, this.page * this.length - this.length];
+  }
+
+  merge(limit: Pagination) {
+    this.length = limit.length;
+    this.page = limit.page;
+  }
+
+  set(page: number) {
+    this.page = page;
+  }
+
+  toString() {
+    return "LIMIT ? OFFSET ?";
+  }
+
+  toExpr() {
+    return [this.toString(), ...this.bindings] as Expression;
   }
 }
 

@@ -12,7 +12,6 @@ export default function Page() {
 
   const {
     mutate: signUp,
-    data,
     error,
     isPending,
   } = useMutation({

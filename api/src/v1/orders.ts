@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { z } from "zod";
+import { z } from "zod";
 import { api } from "~/src/api";
 import { must } from "~/src/shared/must";
+import { hash } from "~/src/shared/object";
 import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 import { Id } from "~/src/shared/schema";
+import { scope } from "~/src/shared/scope";
 import { sql } from "~/src/shared/sql";
 
 const app = new Hono<Env<z.infer<api.sessions.Session>>>();
@@ -29,7 +31,11 @@ app.post("/", async (ctx) => {
   });
 
   const portfolio = await database.get<z.infer<api.portfolios.Portfolio>>(
-    ...sql.q`SELECT * FROM portfolios WHERE id = ${order.portfolioId} AND userId = ${session.userId} LIMIT 1;`,
+    ...new sql.Query(
+      "SELECT * FROM portfolios",
+      ["WHERE id = ? AND userId = ?", order.portfolioId, session.userId],
+      "LIMIT 1;",
+    ).toExpr(),
   );
 
   if (!portfolio) {
@@ -38,7 +44,15 @@ app.post("/", async (ctx) => {
 
   if (order.type === "ask") {
     const holding = await database.get<z.infer<api.holdings.Holding>>(
-      ...sql.q`SELECT * FROM holdings WHERE portfolioId = ${order.portfolioId} AND stockId = ${order.stockId} LIMIT 1;`,
+      ...new sql.Query(
+        "SELECT * FROM holdings",
+        [
+          "WHERE portfolioId = ? AND stockId = ?",
+          order.portfolioId,
+          order.stockId,
+        ],
+        "LIMIT 1;",
+      ).toExpr(),
     );
 
     if (!holding) {
@@ -86,21 +100,52 @@ app.post("/", async (ctx) => {
   return ctx.json({ order, ...stock }, Status.Created);
 });
 
+const Params = z.object({
+  portfolio: Id.optional(),
+  from: z.string().date().optional(),
+  until: z.string().date().optional(),
+  page: z.coerce.number().default(1),
+  length: z.coerce.number().default(100),
+});
+
 app.get("/", async (ctx) => {
   const database = ctx.get("database");
+  const params = Params.parse(ctx.req.query());
+
+  const criteria = new sql.Criteria();
+  criteria.push("status = ?", "pending");
+  scope(params, "portfolio", (portfolioId) => {
+    criteria.push("portfolioId = ?", portfolioId);
+  });
+  scope(params, "from", (from) => {
+    criteria.push("createdAt >= ?", from);
+  });
+  scope(params, "until", (until) => {
+    criteria.push("createdAt <= ?", until);
+  });
+
+  const pagination = new sql.Pagination(100, params.page);
 
   const orders = await database.all<z.infer<api.orders.Order>>(
-    ...sql.q`SELECT * FROM orders WHERE status = 'pending' ORDER BY createdAt DESC;`,
+    ...new sql.Query(
+      "SELECT * FROM orders",
+      criteria,
+      "ORDER BY createdAt DESC",
+      pagination,
+    ).toExpr(),
   );
 
-  const stocks = await database.all<z.infer<api.stocks.Stock>>(
-    ...sql.q`SELECT * FROM stocks;`,
+  const stocks = hash(
+    await database.all<z.infer<api.stocks.Stock>>(
+      ...sql.q`SELECT * FROM stocks;`,
+    ),
+    (stock) => stock.id,
   );
 
   return ctx.json(
     orders.map((order) => ({
       ...order,
-      stock: stocks.find(({ id }) => order.stockId === id),
+      stock: stocks[order.stockId],
     })),
     Status.Ok,
   );
@@ -128,4 +173,28 @@ app.get("/:id{\\d+}", async (ctx) => {
   );
 
   return ctx.json({ order, ...stock });
+});
+
+app.delete("/:id{\\d+}", async (ctx) => {
+  const database = ctx.get("database");
+  const session = ctx.get("session");
+  const id = Id.parse(ctx.req.param("id"));
+
+  if (!session) {
+    throw new HTTPException(Status.Unauthorized);
+  }
+
+  const criteria = new sql.Criteria();
+  criteria.push("id = ?", id);
+  criteria.push("userId = ?", session.userId);
+
+  const order = await database.get<z.infer<api.orders.Order>>(
+    ...sql.q`UPDATE orders SET ${new sql.Patch(api.orders.patch({ status: "cancelled" }))} WHERE ${criteria};`,
+  );
+
+  if (!order) {
+    throw new HTTPException(Status.NotFound);
+  }
+
+  return ctx.json(order);
 });

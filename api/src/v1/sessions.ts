@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-import { deleteCookie, setCookie } from "hono/cookie";
+import { setCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
+import { DateTime } from "luxon";
 import type { z } from "zod";
 import { api } from "~/src/api";
 import { must } from "~/src/shared/must";
@@ -86,14 +87,12 @@ app.delete("/:id{\\d+}", async (ctx) => {
   criteria.push("userId = ?", session.userId);
 
   const target = await database.get<z.infer<api.sessions.Session>>(
-    ...sql.q`DELETE FROM sessions ${criteria};`,
+    ...sql.q`UPDATE sessions SET expiresAt = ${DateTime.now().toISO()} ${criteria} RETURNING *;`,
   );
 
   if (!target) {
     throw new HTTPException(Status.NotFound);
   }
-
-  deleteCookie(ctx, "session");
 
   return ctx.json(target, Status.Ok);
 });

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { api } from "~/src/api";
 import type { Database } from "~/src/shared/database";
 import { AutoDateTime, Id } from "~/src/shared/schema";
+import type { AtLeastOne } from "~/src/shared/types";
 
 /**
  * Portfolio schema.
@@ -53,7 +54,7 @@ export function create(data: Pick<z.input<Portfolio>, "userId" | "balance">) {
 /**
  * Create a patch.
  */
-export function patch(data: Partial<Pick<z.input<Portfolio>, "balance">>) {
+export function patch(data: AtLeastOne<Pick<z.input<Portfolio>, "balance">>) {
   return Portfolio.pick({
     updatedAt: true,
     balance: true,

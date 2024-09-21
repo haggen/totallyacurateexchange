@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { z } from "zod";
 import type { api } from "~/src/api";
+import { hash } from "~/src/shared/object";
 import type { Env } from "~/src/shared/request";
 import { Status } from "~/src/shared/response";
 import { Id } from "~/src/shared/schema";
@@ -33,14 +34,17 @@ app.get("/", async (ctx) => {
     ...sql.q`SELECT * FROM holdings ${criteria};`,
   );
 
-  const stocks = await database.all<z.infer<api.stocks.Stock>>(
-    ...sql.q`SELECT * FROM stocks;`,
+  const stocks = hash(
+    await database.all<z.infer<api.stocks.Stock>>(
+      ...sql.q`SELECT * FROM stocks;`,
+    ),
+    (stock) => stock.id,
   );
 
   return ctx.json(
     holdings.map((holdings) => ({
       ...holdings,
-      stock: stocks.find((stock) => stock.id === holdings.stockId),
+      stock: stocks[holdings.stockId],
     })),
     Status.Ok,
   );

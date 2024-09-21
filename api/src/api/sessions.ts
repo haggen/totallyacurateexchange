@@ -1,14 +1,9 @@
+import { DateTime } from "luxon";
 import { z } from "zod";
 import { api } from "~/src/api";
 import type { Database } from "~/src/shared/database";
 import { AutoDateTime, Id } from "~/src/shared/schema";
 import { sql } from "~/src/shared/sql";
-import { Time } from "~/src/shared/time";
-
-/**
- * Default time to live for sessions.
- */
-const TTL = Time.Day;
 
 /**
  * Session schema.
@@ -19,7 +14,7 @@ export const Session = z.object({
   expiresAt: z
     .string()
     .datetime()
-    .default(() => new Date(Date.now() + TTL).toISOString()),
+    .default(() => DateTime.now().plus({ day: 1 }).toISO()),
   userId: Id,
   token: z
     .string()
@@ -67,6 +62,10 @@ export function create(data: { userId: z.input<typeof Id> }) {
 
 export async function findNotExpiredByToken(database: Database, token: string) {
   return await database.get<z.infer<Session>>(
-    ...sql.q`SELECT * FROM sessions WHERE token = ${token} AND expiresAt > ${new Date().toISOString()} LIMIT 1;`,
+    ...new sql.Query(
+      "SELECT * FROM sessions",
+      ["WHERE token = ? AND expiresAt > ?", token, DateTime.now().toISO()],
+      "LIMIT 1;",
+    ).toExpr(),
   );
 }

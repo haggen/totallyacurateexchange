@@ -5,6 +5,7 @@ import { must } from "~/src/shared/must";
 import { random } from "~/src/shared/random";
 import { AutoDateTime, Id } from "~/src/shared/schema";
 import { sql } from "~/src/shared/sql";
+import type { AtLeastOne } from "~/src/shared/types";
 
 /**
  * Order schema.
@@ -13,6 +14,7 @@ export const Order = z.object({
   id: Id,
   createdAt: AutoDateTime,
   updatedAt: AutoDateTime,
+  expiresAt: z.string().datetime(),
   portfolioId: Id,
   stockId: Id,
   status: z.enum(["pending", "completed", "cancelled"]).default("pending"),
@@ -40,6 +42,7 @@ export async function migrate(database: Database) {
         id INTEGER PRIMARY KEY,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
+        expiresAt TEXT CHECK (expiresAt > createdAt),
         portfolioId INTEGER NOT NULL REFERENCES portfolios(id),
         stockId INTEGER NOT NULL REFERENCES stocks(id),
         status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
@@ -147,7 +150,7 @@ export function create(
  * Create a patch.
  */
 export function patch(
-  data: Partial<
+  data: AtLeastOne<
     Pick<z.input<Order>, "status" | "type" | "price" | "shares" | "remaining">
   >,
 ) {

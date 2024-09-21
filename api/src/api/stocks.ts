@@ -13,8 +13,7 @@ export const Stock = z.object({
   createdAt: AutoDateTime,
   updatedAt: AutoDateTime,
   name: Name,
-  ask: z.number().default(0),
-  bid: z.number().default(0),
+  price: z.number().default(0),
 });
 
 /**
@@ -33,8 +32,7 @@ export async function migrate(database: Database) {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         name TEXT NOT NULL UNIQUE,
-        ask INTEGER NOT NULL DEFAULT 0 CHECK (ask >= 0),
-        bid INTEGER NOT NULL DEFAULT 0 CHECK (bid >= 0)
+        price INTEGER NOT NULL DEFAULT 0 CHECK (price >= 0)
       );
     `,
   );
@@ -79,7 +77,7 @@ export async function seed(database: Database) {
 
   for await (const data of stocks) {
     const entry = new sql.Entry(create(data));
-    await database.run(`INSERT INTO stocks ${entry};`, ...entry.bindings);
+    await database.run(...sql.q`INSERT INTO stocks ${entry};`);
   }
 }
 
@@ -98,14 +96,13 @@ export function create(data: Pick<z.input<Stock>, "name">) {
  * Create a patch.
  */
 export function patch(
-  data: AtLeastOne<z.input<Stock>, "name" | "ask" | "bid">,
+  data: AtLeastOne<Pick<z.input<Stock>, "name" | "price">>,
 ) {
   return z
     .object({
       updatedAt: Stock.shape.updatedAt,
       name: Stock.shape.name.optional(),
-      ask: Stock.shape.ask.optional(),
-      bid: Stock.shape.bid.optional(),
+      price: Stock.shape.price.optional(),
     })
     .parse(data);
 }

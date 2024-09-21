@@ -26,3 +26,18 @@ export function pick<T extends object, K extends (keyof T)[]>(
     {} as Pick<T, K[number]>,
   );
 }
+
+type Key = string | number | symbol;
+
+/**
+ * Create a hash map from a list of objects.
+ */
+export function hash<T extends Record<string, unknown>>(
+  list: T[],
+  getKey: (item: T, index: number) => Key,
+) {
+  return list.reduce(
+    (hash, item, index) => Object.assign(hash, { [getKey(item, index)]: item }),
+    {} as Record<Key, T>,
+  );
+}
