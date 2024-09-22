@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLayoutEffect, useRef } from "react";
 import { Button } from "~/src/components/Button";
 import { Header } from "~/src/components/Header";
@@ -9,7 +9,6 @@ import { fmt } from "~/src/lib/format";
 import { request } from "~/src/lib/request";
 
 export default function Page() {
-  const queryClient = useQueryClient();
   const postDialogRef = useRef<HTMLDialogElement>(null);
   const postFormRef = useRef<HTMLFormElement>(null);
 
@@ -17,7 +16,7 @@ export default function Page() {
     data: { body: portfolio } = {},
   } = useQuery({
     queryKey: ["portfolio"],
-    refetchInterval: 10_000,
+    refetchInterval: 2000,
     queryFn: ({ signal }) => {
       return request<Portfolio>("/api/v1/portfolio", { signal });
     },
@@ -27,7 +26,7 @@ export default function Page() {
     data: { body: holdings } = {},
   } = useQuery({
     queryKey: ["holdings"],
-    refetchInterval: 10_000,
+    refetchInterval: 2000,
     queryFn: ({ signal }) => {
       return request<Holding[]>("/api/v1/holdings", { signal });
     },
@@ -37,7 +36,7 @@ export default function Page() {
     data: { body: market } = {},
   } = useQuery({
     queryKey: ["orders", { hide: portfolio?.id, status: "pending" }],
-    refetchInterval: 10_000,
+    refetchInterval: 2000,
     queryFn: ({ signal }) => {
       return request<Order[]>(
         `/api/v1/orders?hide=${portfolio?.id}&status=pending`,
@@ -53,7 +52,7 @@ export default function Page() {
     data: { body: orders } = {},
   } = useQuery({
     queryKey: ["orders", { portfolio: portfolio?.id }],
-    refetchInterval: 10_000,
+    refetchInterval: 2000,
     queryFn: ({ signal }) => {
       return request<Order[]>(`/api/v1/orders?portfolio=${portfolio?.id}`, {
         signal,
