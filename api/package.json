@@ -8,13 +8,12 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.1",
-    "@types/bun": "^1.1.9",
+    "@types/bun": "^1.1.10",
     "@types/luxon": "^3.4.2",
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "hono": "^4.6.1",
+    "hono": "^4.6.2",
     "luxon": "^3.5.0",
     "zod": "^3.23.8"
   }

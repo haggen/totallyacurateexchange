@@ -30,3 +30,15 @@ export const AutoDateTime = z
   .datetime()
   .optional()
   .default(() => DateTime.utc().toISO());
+
+/**
+ * Parse boolan-like strings. Fit for parsing parameters.
+ */
+export const Boolish = z
+  .union([z.string(), z.number(), z.boolean()])
+  .transform((value) => {
+    if (typeof value === "string") {
+      return /^(t(rue)?|y(es)?|1|on)$/.test(value.trim().toLowerCase());
+    }
+    return !!value;
+  });

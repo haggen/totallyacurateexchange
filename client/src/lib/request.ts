@@ -2,6 +2,7 @@ type ReqDesc<T = unknown> = {
   method: "get" | "post" | "put" | "patch" | "delete";
   headers: Record<string, string>;
   body?: T;
+  query?: Record<string, unknown>;
   signal?: AbortSignal;
   credentials?: RequestCredentials;
 };
@@ -12,7 +13,10 @@ type RespDesc<T = unknown> = {
   body: T;
 };
 
-export async function request<T>(url: string, reqDesc: Partial<ReqDesc> = {}) {
+export async function request<T>(
+  urlDesc: URL | string,
+  reqDesc: Partial<ReqDesc> = {},
+) {
   if ("body" in reqDesc) {
     reqDesc.method ??= "post";
     if (reqDesc.body instanceof FormData) {
@@ -24,6 +28,14 @@ export async function request<T>(url: string, reqDesc: Partial<ReqDesc> = {}) {
   reqDesc.credentials ??= "same-origin";
   reqDesc.headers ??= {};
   reqDesc.headers["Content-Type"] ??= "application/json; charset=utf-8";
+
+  const url = new URL(urlDesc, window.location.origin);
+
+  if (reqDesc.query) {
+    for (const [key, value] of Object.entries(reqDesc.query)) {
+      url.searchParams.set(key, String(value));
+    }
+  }
 
   const response = await fetch(url, {
     method: reqDesc.method,

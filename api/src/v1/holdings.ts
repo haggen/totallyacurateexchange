@@ -28,7 +28,9 @@ app.get("/", async (ctx) => {
   }
 
   const criteria = new sql.Criteria();
+
   criteria.push("portfolioId = ?", portfolio.id);
+  criteria.push("shares > ?", 0);
 
   const holdings = await database.all<z.infer<api.holdings.Holding>>(
     ...sql.q`SELECT * FROM holdings ${criteria};`,

@@ -112,6 +112,7 @@ const Params = z.object({
   until: z.string().date().optional(),
   page: z.coerce.number().default(1),
   length: z.coerce.number().default(100),
+  sort: z.string().optional().default("createdAt"),
 });
 
 app.get("/", async (ctx) => {
@@ -141,13 +142,17 @@ app.get("/", async (ctx) => {
     criteria.push(`status IN ${list}`, ...list.bindings);
   });
 
+  const order = new sql.Order(
+    "CASE status WHEN 'pending' THEN 1 ELSE 2 END ASC",
+    "createdAt DESC",
+  );
   const pagination = new sql.Pagination(params.length, params.page);
 
   const orders = await database.all<z.infer<api.orders.Order>>(
     ...new sql.Query(
       "SELECT * FROM orders",
       criteria,
-      "ORDER BY createdAt DESC",
+      order,
       pagination,
     ).toExpr(),
   );
@@ -201,16 +206,71 @@ app.delete("/:id{\\d+}", async (ctx) => {
     throw new HTTPException(Status.Unauthorized);
   }
 
+  const portfolio = await database.get<z.infer<api.portfolios.Portfolio>>(
+    ...new sql.Query(
+      "SELECT * FROM portfolios",
+      ["WHERE userId = ?", session.userId],
+      "LIMIT 1;",
+    ).toExpr(),
+  );
+
+  if (!portfolio) {
+    throw new HTTPException(Status.NotFound);
+  }
+
   const criteria = new sql.Criteria();
   criteria.push("id = ?", id);
-  criteria.push("userId = ?", session.userId);
+  criteria.push("portfolioId = ?", portfolio.id);
+  criteria.push("status = ?", "pending");
 
   const order = await database.get<z.infer<api.orders.Order>>(
-    ...sql.q`UPDATE orders SET ${new sql.Patch(api.orders.patch({ status: "cancelled" }))} WHERE ${criteria};`,
+    ...new sql.Query(
+      "UPDATE orders",
+      new sql.Patch(api.orders.patch({ status: "cancelled" })),
+      criteria,
+      "RETURNING *;",
+    ).toExpr(),
   );
 
   if (!order) {
     throw new HTTPException(Status.NotFound);
+  }
+
+  // We need to refund who posted the order.
+  if (order.type === "bid") {
+    await database.run(
+      ...new sql.Query(
+        "UPDATE portfolios",
+        new sql.Patch({
+          balance: portfolio.balance + order.price * order.shares,
+        }),
+        ["WHERE id = ?", portfolio.id],
+      ).toExpr(),
+    );
+  } else if (order.type === "ask") {
+    const holding = must(
+      await database.get<z.infer<api.holdings.Holding>>(
+        ...new sql.Query(
+          "SELECT * FROM holdings",
+          [
+            "WHERE portfolioId = ? AND stockId = ?",
+            portfolio.id,
+            order.stockId,
+          ],
+          "LIMIT 1;",
+        ).toExpr(),
+      ),
+    );
+
+    await database.run(
+      ...new sql.Query(
+        "UPDATE holdings",
+        new sql.Patch({
+          shares: holding.shares + order.shares,
+        }),
+        ["WHERE id = ?", holding.id],
+      ).toExpr(),
+    );
   }
 
   return ctx.json(order);
