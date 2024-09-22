@@ -54,7 +54,7 @@ app.get("/", async (ctx) => {
 
   return ctx.json(
     prices.map((price) => ({
-      ...prices,
+      ...price,
       stock: stocks[price.stockId],
     })),
   );
