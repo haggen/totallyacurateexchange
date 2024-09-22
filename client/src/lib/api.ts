@@ -30,8 +30,7 @@ export type Stock = {
   createdAt: string;
   updatedAt: string;
   name: string;
-  ask: number;
-  bid: number;
+  price: number;
 };
 
 export type User = {

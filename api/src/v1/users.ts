@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { setCookie } from "hono/cookie";
+import { DateTime } from "luxon";
 import type { z } from "zod";
 import { api } from "~/src/api";
 import { must } from "~/src/shared/must";
@@ -25,13 +27,30 @@ app.post("/", async (ctx) => {
     ),
   );
 
-  const portfolio = await database.get<z.infer<api.portfolios.Portfolio>>(
-    ...sql.q`INSERT INTO portfolios ${new sql.Entry(
-      api.portfolios.create({
-        userId: user.id,
-      }),
-    )} RETURNING *;`,
+  const portfolio = must(
+    await database.get<z.infer<api.portfolios.Portfolio>>(
+      ...sql.q`INSERT INTO portfolios ${new sql.Entry(
+        api.portfolios.create({
+          userId: user.id,
+        }),
+      )} RETURNING *;`,
+    ),
   );
 
-  return ctx.json({ ...user, portfolio }, Status.Created);
+  const session = must(
+    await database.get<z.infer<api.sessions.Session>>(
+      ...sql.q`INSERT INTO sessions ${new sql.Entry(
+        api.sessions.create({
+          userId: user.id,
+        }),
+      )} RETURNING *;`,
+    ),
+  );
+
+  setCookie(ctx, "session", session.token, {
+    httpOnly: true,
+    expires: DateTime.fromISO(session.expiresAt, { zone: "utc" }).toJSDate(),
+  });
+
+  return ctx.json({ ...user, portfolio, session }, Status.Created);
 });

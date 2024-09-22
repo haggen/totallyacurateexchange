@@ -256,12 +256,12 @@ const Params = z.object({
     .string()
     .date()
     .optional()
-    .default(() => DateTime.now().minus({ month: 1 }).toISODate()),
+    .default(() => DateTime.utc().minus({ month: 1 }).toISODate()),
   until: z
     .string()
     .date()
     .optional()
-    .default(() => DateTime.now().toISODate()),
+    .default(() => DateTime.utc().toISODate()),
   page: z.coerce.number().default(1),
   length: z.coerce.number().default(100),
 });
@@ -271,20 +271,26 @@ app.get("/", async (ctx) => {
   const params = Params.parse(ctx.req.query());
 
   const criteria = new sql.Criteria();
+  const join = new sql.Join();
+
   scope(params, "portfolio", (portfolioId) => {
+    join.push(
+      "LEFT JOIN orders ON orders.id = trades.askId OR orders.id = trades.bidId",
+    );
     criteria.push("orders.portfolioId = ?", portfolioId);
   });
-  criteria.push("trades.createdAt >= ?", params.from);
-  criteria.push("trades.createdAt <= ?", params.until);
 
-  const pagination = new sql.Pagination(100, params.page);
+  criteria.push("trades.executedAt >= ?", params.from);
+  criteria.push("trades.executedAt <= ?", params.until);
+
+  const pagination = new sql.Pagination(params.length, params.page);
 
   const trades = await database.all<z.infer<api.trades.Trade>>(
     ...new sql.Query(
       "SELECT trades.* FROM trades",
-      "LEFT JOIN orders ON orders.id = trades.askId OR orders.id = trades.bidId",
+      join,
       criteria,
-      "ORDER BY orders.executedAt",
+      "ORDER BY trades.executedAt DESC",
       pagination,
     ).toExpr(),
   );

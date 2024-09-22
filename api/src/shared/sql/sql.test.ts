@@ -331,12 +331,24 @@ describe("Offset", () => {
 describe("Query", () => {
   const select = new Selection("*");
   const source = new Source("t");
-  const criteria = new Criteria("f = ?", 1);
+  const criteria = new Criteria("f = ?", 2);
 
-  const query = new Query("SELECT", select, source, criteria);
+  const query = new Query(
+    "SELECT",
+    select,
+    source,
+    ["JOIN t ON f = f", 1],
+    criteria,
+  );
 
   test("constructor/set", () => {
-    expect(query.components).toEqual(["SELECT", select, source, criteria]);
+    expect(query.components).toEqual([
+      "SELECT",
+      select,
+      source,
+      ["JOIN t ON f = f", 1],
+      criteria,
+    ]);
   });
 
   test("push", () => {
@@ -349,6 +361,7 @@ describe("Query", () => {
       "SELECT",
       select,
       source,
+      ["JOIN t ON f = f", 1],
       criteria,
       limit,
       offset,
@@ -357,8 +370,9 @@ describe("Query", () => {
 
   test("toExpr/toString/bindings", () => {
     expect(query.toExpr()).toEqual([
-      "SELECT * FROM t WHERE f = ? LIMIT 1 OFFSET 1",
+      "SELECT * FROM t JOIN t ON f = f WHERE f = ? LIMIT 1 OFFSET 1",
       1,
+      2,
     ]);
   });
 });

@@ -37,13 +37,17 @@ app.post("/", async (ctx) => {
 
   const session = must(
     await database.get<z.infer<api.sessions.Session>>(
-      ...sql.q`INSERT INTO sessions ${new sql.Entry(api.sessions.create({ userId: user.id }))} RETURNING *;`,
+      ...new sql.Query(
+        "INSERT INTO sessions",
+        new sql.Entry(api.sessions.create({ userId: user.id })),
+        "RETURNING *;",
+      ).toExpr(),
     ),
   );
 
   setCookie(ctx, "session", session.token, {
     httpOnly: true,
-    expires: new Date(session.expiresAt),
+    expires: DateTime.fromISO(session.expiresAt, { zone: "utc" }).toJSDate(),
   });
 
   return ctx.json(session, Status.Created);
@@ -87,7 +91,7 @@ app.delete("/:id{\\d+}", async (ctx) => {
   criteria.push("userId = ?", session.userId);
 
   const target = await database.get<z.infer<api.sessions.Session>>(
-    ...sql.q`UPDATE sessions SET expiresAt = ${DateTime.now().toISO()} ${criteria} RETURNING *;`,
+    ...sql.q`UPDATE sessions SET expiresAt = ${DateTime.utc().toISO()} ${criteria} RETURNING *;`,
   );
 
   if (!target) {

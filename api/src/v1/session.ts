@@ -32,7 +32,7 @@ app.delete("/", async (ctx) => {
 
   const target = must(
     await database.get<z.infer<api.sessions.Session>>(
-      ...sql.q`UPDATE sessions SET expiresAt = ${DateTime.now().toISO()} WHERE id = ${session.id} RETURNING *;`,
+      ...sql.q`UPDATE sessions SET expiresAt = ${DateTime.utc().toISO()} WHERE id = ${session.id} RETURNING *;`,
     ),
   );
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useRef } from "react";
+import type { FormEvent } from "react";
 import { Alert } from "~/src/components/Alert";
 import { Button } from "~/src/components/Button";
 import { Field } from "~/src/components/Field";
@@ -8,9 +8,12 @@ import { Select } from "~/src/components/Select";
 import type { Order, Stock } from "~/src/lib/api";
 import { request } from "~/src/lib/request";
 
-export function OrderForm({ portfolioId }: { portfolioId: number }) {
+type Props = {
+  formRef: React.RefObject<HTMLFormElement>;
+};
+
+export function OrderForm({ formRef }: Props) {
   const queryClient = useQueryClient();
-  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     mutate: post,
@@ -56,13 +59,13 @@ export function OrderForm({ portfolioId }: { portfolioId: number }) {
       <Alert error={error} />
 
       <fieldset className="flex flex-col gap-6">
-        <input type="hidden" name="portfolioId" value={portfolioId} />
+        <input type="hidden" name="portfolioId" />
 
         <div className="grid grid-cols-2 gap-6">
           <Field label="Type">
             {({ id }) => (
               <Select id={id} name="type" required>
-                <option value="" disabled selected className="hidden">
+                <option value="" className="hidden">
                   e.g. Ask
                 </option>
                 <option value="bid">Bid</option>
@@ -75,18 +78,10 @@ export function OrderForm({ portfolioId }: { portfolioId: number }) {
             {({ id }) => (
               <Select id={id} name="stockId" required>
                 {isLoadingStocks ? (
-                  <option value="" disabled selected>
-                    Loading...
-                  </option>
+                  <option value="">Loading...</option>
                 ) : (
                   [
-                    <option
-                      key="loading"
-                      value=""
-                      disabled
-                      selected
-                      className="hidden"
-                    >
+                    <option key="placeholder" value="">
                       e.g. Stock Co.
                     </option>,
                     ...stocks.map((stock) => (

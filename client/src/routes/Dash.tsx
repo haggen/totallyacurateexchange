@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLayoutEffect, useRef } from "react";
 import { Button } from "~/src/components/Button";
 import { Header } from "~/src/components/Header";
 import { Modal } from "~/src/components/Modal";
@@ -11,22 +11,13 @@ import { request } from "~/src/lib/request";
 export default function Page() {
   const queryClient = useQueryClient();
   const postDialogRef = useRef<HTMLDialogElement>(null);
-
-  const { mutate: executeTrades } = useMutation({
-    mutationFn() {
-      return request("/api/v1/trades", { method: "post" });
-    },
-    onSuccess() {
-      queryClient.invalidateQueries({ queryKey: ["holdings"] });
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-    },
-  });
+  const postFormRef = useRef<HTMLFormElement>(null);
 
   const {
     data: { body: portfolio } = {},
   } = useQuery({
     queryKey: ["portfolio"],
+    refetchInterval: 10_000,
     queryFn: ({ signal }) => {
       return request<Portfolio>("/api/v1/portfolio", { signal });
     },
@@ -36,19 +27,76 @@ export default function Page() {
     data: { body: holdings } = {},
   } = useQuery({
     queryKey: ["holdings"],
+    refetchInterval: 10_000,
     queryFn: ({ signal }) => {
       return request<Holding[]>("/api/v1/holdings", { signal });
     },
   });
 
   const {
+    data: { body: market } = {},
+  } = useQuery({
+    queryKey: ["orders", { hide: portfolio?.id, status: "pending" }],
+    refetchInterval: 10_000,
+    queryFn: ({ signal }) => {
+      return request<Order[]>(
+        `/api/v1/orders?hide=${portfolio?.id}&status=pending`,
+        {
+          signal,
+        },
+      );
+    },
+    enabled: !!portfolio,
+  });
+
+  const {
     data: { body: orders } = {},
   } = useQuery({
-    queryKey: ["orders"],
+    queryKey: ["orders", { portfolio: portfolio?.id }],
+    refetchInterval: 10_000,
     queryFn: ({ signal }) => {
-      return request<Order[]>("/api/v1/orders", { signal });
+      return request<Order[]>(`/api/v1/orders?portfolio=${portfolio?.id}`, {
+        signal,
+      });
     },
+    enabled: !!portfolio,
   });
+
+  useLayoutEffect(() => {
+    if (!postFormRef.current) {
+      throw new Error("Can't set portfolioId");
+    }
+
+    const controls = postFormRef.current.elements as unknown as {
+      portfolioId: HTMLInputElement;
+    };
+
+    controls.portfolioId.value = String(portfolio?.id);
+  }, [portfolio]);
+
+  const createMatchingOrder = (order: Order) => {
+    if (!postFormRef.current) {
+      return;
+    }
+
+    if (!postDialogRef.current) {
+      return;
+    }
+
+    const controls = postFormRef.current.elements as unknown as {
+      type: HTMLSelectElement;
+      stockId: HTMLInputElement;
+      shares: HTMLInputElement;
+      price: HTMLInputElement;
+    };
+
+    controls.type.value = order.type === "bid" ? "ask" : "bid";
+    controls.stockId.value = String(order.stock.id);
+    controls.shares.value = String(order.remaining);
+    controls.price.value = String(order.price);
+
+    postDialogRef.current.showModal();
+  };
 
   return (
     <div className="container grid grid-cols-2 gap-12 px-12 py-6 mx-auto">
@@ -101,10 +149,12 @@ export default function Page() {
             <thead>
               <tr>
                 <th className="p-2 text-left">Stock</th>
-                <th className="p-2 text-left border-l border-zinc-700">
+                <th className="p-2 text-right border-l border-zinc-700">
                   Shares
                 </th>
-                <th className="p-2 text-right border-l border-zinc-700">Bid</th>
+                <th className="p-2 text-right border-l border-zinc-700">
+                  Price
+                </th>
                 <th className="p-2 text-right border-l border-zinc-700">
                   Total
                 </th>
@@ -114,14 +164,63 @@ export default function Page() {
               {holdings?.map((holding) => (
                 <tr key={holding.id} className="border-t border-zinc-700">
                   <td className="p-2">{holding.stock.name}</td>
-                  <td className="p-2 border-l border-zinc-700">
+                  <td className="p-2 text-right border-l border-zinc-700">
                     {fmt.number(holding.shares)}
                   </td>
                   <td className="p-2 text-right border-l border-zinc-700">
-                    {fmt.currency(holding.stock.bid)}
+                    {fmt.currency(holding.stock.price)}
                   </td>
                   <td className="p-2 text-right border-l border-zinc-700">
-                    {fmt.currency(holding.shares * holding.stock.bid)}
+                    {fmt.currency(holding.shares * holding.stock.price)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <Header title="History" />
+
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="p-2 text-left border-zinc-700">Date</th>
+                <th className="p-2 text-left border-l border-zinc-700">Type</th>
+                <th className="p-2 text-left border-l border-zinc-700">
+                  Stock
+                </th>
+                <th className="p-2 text-right border-l border-zinc-700">
+                  Shares
+                </th>
+                <th className="p-2 text-right border-l border-zinc-700">
+                  Price
+                </th>
+                <th className="p-2 text-right border-l border-zinc-700">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders?.map((order) => (
+                <tr key={order.id} className="border-t border-zinc-700">
+                  <td className="p-2 border-zinc-700">
+                    {fmt.datetime(order.createdAt)}
+                  </td>
+                  <td className="p-2 border-l border-zinc-700">
+                    {fmt.capitalize(order.type)}
+                  </td>
+                  <td className="p-2 truncate border-l max-w-24 border-zinc-700">
+                    {order.stock.name}
+                  </td>
+                  <td className="p-2 text-right border-l border-zinc-700">
+                    {fmt.number(order.shares)}
+                  </td>
+                  <td className="p-2 text-right border-l border-zinc-700">
+                    {fmt.currency(order.price)}
+                  </td>
+                  <td className="p-2 text-right border-l border-zinc-700">
+                    {fmt.capitalize(order.status)}
                   </td>
                 </tr>
               ))}
@@ -132,19 +231,7 @@ export default function Page() {
 
       <div className="flex flex-col gap-12">
         <section className="flex flex-col gap-3">
-          <Header title="Market">
-            <menu>
-              <li>
-                <Button
-                  onClick={() => {
-                    executeTrades();
-                  }}
-                >
-                  Execute trades
-                </Button>
-              </li>
-            </menu>
-          </Header>
+          <Header title="Market" />
 
           <table className="w-full border-collapse">
             <thead>
@@ -159,10 +246,13 @@ export default function Page() {
                 <th className="p-2 text-right border-l border-zinc-700">
                   Price
                 </th>
+                <th className="p-2 text-right border-l border-zinc-700">
+                  &nbsp;
+                </th>
               </tr>
             </thead>
             <tbody>
-              {orders?.map((order) => (
+              {market?.map((order) => (
                 <tr key={order.id} className="border-t border-zinc-700">
                   <td className="p-2 border-zinc-700">
                     {fmt.capitalize(order.type)}
@@ -175,6 +265,14 @@ export default function Page() {
                   </td>
                   <td className="p-2 text-right border-l border-zinc-700">
                     {fmt.currency(order.price)}
+                  </td>
+                  <td className="p-2 text-center border-l border-zinc-700">
+                    <Button
+                      variant="small"
+                      onClick={() => createMatchingOrder(order)}
+                    >
+                      Match
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -190,7 +288,7 @@ export default function Page() {
               </Button>
             </Header>
 
-            <OrderForm portfolioId={portfolio?.id ?? 0} />
+            <OrderForm formRef={postFormRef} />
           </div>
         </Modal>
       </div>

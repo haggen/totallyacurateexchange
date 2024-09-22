@@ -468,6 +468,10 @@ export class Query {
 
   get bindings() {
     return this.components.flatMap((component) => {
+      if (Array.isArray(component)) {
+        return component.slice(1);
+      }
+
       if (typeof component === "object" && "bindings" in component) {
         const bindings = component.bindings;
 
@@ -494,7 +498,9 @@ export class Query {
 
   toString() {
     return `${this.components
-      .map((component) => component.toString())
+      .map((component) =>
+        Array.isArray(component) ? component[0] : component.toString(),
+      )
       .filter(Boolean)
       .join(" ")}`;
   }

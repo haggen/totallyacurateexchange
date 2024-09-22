@@ -14,7 +14,7 @@ export const Session = z.object({
   expiresAt: z
     .string()
     .datetime()
-    .default(() => DateTime.now().plus({ day: 1 }).toISO()),
+    .default(() => DateTime.utc().plus({ day: 1 }).toISO()),
   userId: Id,
   token: z
     .string()
@@ -64,7 +64,7 @@ export async function findNotExpiredByToken(database: Database, token: string) {
   return await database.get<z.infer<Session>>(
     ...new sql.Query(
       "SELECT * FROM sessions",
-      ["WHERE token = ? AND expiresAt > ?", token, DateTime.now().toISO()],
+      ["WHERE token = ? AND expiresAt > ?", token, DateTime.utc().toISO()],
       "LIMIT 1;",
     ).toExpr(),
   );

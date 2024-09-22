@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { User } from "~/src/lib/api";
@@ -10,12 +10,14 @@ type Props = {
 
 export function Layout({ children }: Props) {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
-  const { mutate: signOut } = useMutation({
+  const { mutate: signOut, isPending: isSigningOut } = useMutation({
     mutationFn() {
-      return request("/api/v1/sessions/1", { method: "delete" });
+      return request("/api/v1/session", { method: "delete" });
     },
     onSuccess() {
+      queryClient.removeQueries();
       setLocation("/sign-in");
     },
   });
@@ -25,7 +27,6 @@ export function Layout({ children }: Props) {
   } = useQuery({
     queryKey: ["user"],
     queryFn({ signal }) {
-      console.log("loading user");
       return request<User>("/api/v1/user", { signal });
     },
   });
@@ -41,10 +42,14 @@ export function Layout({ children }: Props) {
           {user ? (
             <ul className="flex items-center gap-6 font-bold">
               <li>
-                <Link href="/profile">Arthur</Link>
+                <Link href="/profile">{user.name}</Link>
               </li>
               <li>
-                <button type="button" onClick={() => signOut()}>
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  disabled={isSigningOut}
+                >
                   Sign out
                 </button>
               </li>

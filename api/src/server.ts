@@ -39,6 +39,10 @@ app.use(setRequestSession(api.sessions.findNotExpiredByToken));
 
 app.route("/api/v1", v1);
 
+setInterval(() => {
+  app.fetch(new Request("http://localhost/api/v1/trades", { method: "POST" }));
+}, 60_000);
+
 print(
   "log",
   "server",

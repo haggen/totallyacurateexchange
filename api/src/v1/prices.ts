@@ -17,12 +17,12 @@ const Params = z.object({
     .string()
     .datetime()
     .optional()
-    .default(() => DateTime.now().minus({ month: 1 }).toISO()),
+    .default(() => DateTime.utc().minus({ month: 1 }).toISO()),
   until: z
     .string()
     .datetime()
     .optional()
-    .default(() => DateTime.now().toISO()),
+    .default(() => DateTime.utc().toISO()),
   page: z.coerce.number().default(1),
   length: z.coerce.number().default(100),
 });

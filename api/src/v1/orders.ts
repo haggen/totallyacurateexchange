@@ -64,9 +64,13 @@ app.post("/", async (ctx) => {
     }
 
     await database.run(
-      ...sql.q`UPDATE holdings ${new sql.Patch({
-        shares: holding.shares - order.shares,
-      })} id = ${holding.id};`,
+      ...new sql.Query(
+        "UPDATE holdings",
+        new sql.Patch({
+          shares: holding.shares - order.shares,
+        }),
+        ["WHERE id = ?", holding.id],
+      ).toExpr(),
     );
   } else if (order.type === "bid") {
     const total = order.price * order.shares;
@@ -102,6 +106,8 @@ app.post("/", async (ctx) => {
 
 const Params = z.object({
   portfolio: Id.optional(),
+  status: z.string().optional().default("pending,fulfilled,cancelled"),
+  hide: Id.optional(),
   from: z.string().date().optional(),
   until: z.string().date().optional(),
   page: z.coerce.number().default(1),
@@ -113,18 +119,29 @@ app.get("/", async (ctx) => {
   const params = Params.parse(ctx.req.query());
 
   const criteria = new sql.Criteria();
-  criteria.push("status = ?", "pending");
+
+  scope(params, "hide", (portfolioId) => {
+    criteria.push("portfolioId != ?", portfolioId);
+  });
+
   scope(params, "portfolio", (portfolioId) => {
     criteria.push("portfolioId = ?", portfolioId);
   });
+
   scope(params, "from", (from) => {
     criteria.push("createdAt >= ?", from);
   });
+
   scope(params, "until", (until) => {
     criteria.push("createdAt <= ?", until);
   });
 
-  const pagination = new sql.Pagination(100, params.page);
+  scope(params, "status", (status) => {
+    const list = new sql.List(status.split(","));
+    criteria.push(`status IN ${list}`, ...list.bindings);
+  });
+
+  const pagination = new sql.Pagination(params.length, params.page);
 
   const orders = await database.all<z.infer<api.orders.Order>>(
     ...new sql.Query(

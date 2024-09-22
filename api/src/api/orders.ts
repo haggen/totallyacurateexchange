@@ -17,7 +17,7 @@ export const Order = z.object({
   expiresAt: z.string().datetime(),
   portfolioId: Id,
   stockId: Id,
-  status: z.enum(["pending", "completed", "cancelled"]).default("pending"),
+  status: z.enum(["pending", "fulfilled", "cancelled"]).default("pending"),
   type: z.enum(["bid", "ask"]),
   price: z.coerce.number().gte(0),
   shares: z.coerce.number().gt(0),
@@ -45,7 +45,7 @@ export async function migrate(database: Database) {
         expiresAt TEXT CHECK (expiresAt > createdAt),
         portfolioId INTEGER NOT NULL REFERENCES portfolios(id),
         stockId INTEGER NOT NULL REFERENCES stocks(id),
-        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'fulfilled', 'cancelled')),
         type TEXT NOT NULL CHECK (type IN ('bid', 'ask')),
         price INTEGER NOT NULL CHECK (price >= 0),
         shares INTEGER NOT NULL CHECK (shares > 0),
@@ -166,7 +166,7 @@ export function patch(
     .parse(data);
 
   if (patch.remaining === 0) {
-    patch.status = "completed";
+    patch.status = "fulfilled";
   }
 
   return patch;

@@ -29,4 +29,4 @@ export const AutoDateTime = z
   .string()
   .datetime()
   .optional()
-  .default(() => DateTime.now().toISO());
+  .default(() => DateTime.utc().toISO());

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useLocation } from "wouter";
 import { Button } from "~/src/components/Button";
@@ -9,18 +9,20 @@ import { request } from "~/src/lib/request";
 
 export default function Page() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
   const {
     mutate: signIn,
     error,
     isPending,
   } = useMutation({
-    mutationFn: (data: FormData) => {
+    mutationFn(data: FormData) {
       return request<Session>("/api/v1/sessions", {
         body: data,
       });
     },
-    onSuccess: () => {
+    async onSuccess() {
+      await queryClient.invalidateQueries();
       setLocation("/");
     },
   });
