@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FormEvent } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Alert } from "~/src/components/Alert";
 import { Button } from "~/src/components/Button";
 import { Field } from "~/src/components/Field";
@@ -40,9 +40,17 @@ export default function Page() {
         aria-busy={isPending}
         className="flex flex-col mx-auto gap-9 w-80"
       >
-        <legend className="sr-only">Sign up</legend>
+        <legend className="text-2xl font-bold">Join up</legend>
 
         <Alert error={error} />
+
+        <p>
+          Already a member?{" "}
+          <Link href="sign-in" className="font-bold underline">
+            Sign in, instead
+          </Link>
+          .
+        </p>
 
         <fieldset className="flex flex-col gap-6">
           <Field label="Name">
