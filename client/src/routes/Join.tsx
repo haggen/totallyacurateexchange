@@ -46,7 +46,7 @@ export default function Page() {
 
         <p>
           Already a member?{" "}
-          <Link href="sign-in" className="font-bold underline">
+          <Link href="/sign-in" className="font-bold underline">
             Sign in, instead
           </Link>
           .

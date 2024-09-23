@@ -47,7 +47,7 @@ export default function Page() {
 
         <p>
           Haven't joined yet?{" "}
-          <Link href="sign-in" className="font-bold underline">
+          <Link href="/join" className="font-bold underline">
             Create a new account
           </Link>
           .
