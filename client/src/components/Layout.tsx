@@ -22,12 +22,17 @@ export function Layout({ children }: Props) {
     },
   });
 
-  const {
-    data: { body: user } = {},
-  } = useQuery({
+  const { data: user } = useQuery({
     queryKey: ["user"],
-    queryFn({ signal }) {
-      return request<User>("/api/v1/user", { signal });
+    async queryFn({ signal }) {
+      try {
+        return await request<User>("/api/v1/user", { signal });
+      } catch (err) {
+        return undefined;
+      }
+    },
+    select(response) {
+      return response?.body;
     },
   });
 
